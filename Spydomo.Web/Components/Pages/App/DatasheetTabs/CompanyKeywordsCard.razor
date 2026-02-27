@@ -1,0 +1,99 @@
+﻿@using Spydomo.DTO.Datasheet
+@using System.Globalization;
+@using System.Text.RegularExpressions;
+
+<MudCard Class="src-card" Elevation="0">
+    <MudCardContent>
+
+        <!-- Header (same as Sources) -->
+        <div class="src-head">
+            <MudAvatar Variant="Variant.Outlined" Size="Size.Medium">@Initial(Company.Company)</MudAvatar>
+            <div class="min-w-0 grow ml-2">
+                <div class="truncate font-medium">@Company.Company</div>
+                @if (!string.IsNullOrWhiteSpace(Company.Url))
+                {
+                    <a href="https://@Company.Url" target="_blank" class="src-domain">@Domain(Company.Url)</a>
+                }
+            </div>
+            @*<MudChip T="string" Dense="true" Color="Color.Primary">@Company.Keywords.Count</MudChip>*@
+        </div>
+
+        <!-- Keywords list -->
+        @if (Company.Keywords.Count == 0)
+        {
+            <div class="muted">—</div>
+        }
+        else
+        {
+            <div class="kw-list">
+                @foreach (var k in Company.Keywords.OrderByDescending(x => x.Confidence).ThenBy(x => x.Keyword))
+                {
+                    <div class="kw-row">
+                        <div class="kw-left">
+                            <div class="kw-term">@SimpleTitleCase(k.Keyword)</div>
+                            @if (!string.IsNullOrWhiteSpace(k.Reason))
+                            {
+                                <div class="kw-reason text-muted">@k.Reason</div>
+                            }
+                        </div>
+                        @*@if (k.Confidence > 0 && k.Confidence <= 1)
+                        {
+                            <div class="kw-conf">@k.Confidence.ToString("P0", System.Globalization.CultureInfo.InvariantCulture)</div>
+                        }*@
+                    </div>
+                }
+            </div>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public KeywordsCompanyDto Company { get; set; } = default!;
+
+
+
+    private static readonly TextInfo TI = CultureInfo.CurrentCulture.TextInfo;
+
+    private static string SimpleTitleCase(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+
+        return string.Join(' ',
+            input.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                 .Select(TitleizeToken));
+    }
+
+    private static string TitleizeToken(string token)
+    {
+        // Preserve fully UPPERCASE acronyms (letters-only) and things like GA4 (letters all caps)
+        var letters = token.Where(char.IsLetter).ToArray();
+        if (letters.Length > 0 && letters.All(char.IsUpper))
+            return token;
+
+        // Preserve mixed-case words (e.g., "SaaS", "iPhone", "KPIs")
+        if (token.Length > 1 && token.Skip(1).Any(char.IsUpper))
+            return token;
+
+        // Handle hyphenated words: "agency-focused" => "Agency-Focused"
+        if (token.Contains('-'))
+            return string.Join('-', token.Split('-').Select(TitleizeToken));
+
+        // Handle slashes: "ppc/sem" => "Ppc/Sem" (acronyms already covered)
+        if (token.Contains('/'))
+            return string.Join('/', token.Split('/').Select(TitleizeToken));
+
+        // Default: capitalize first letter, lowercase the rest
+        var lower = TI.ToLower(token);
+        return TI.ToTitleCase(lower);
+    }
+
+    private static string Initial(string? s)
+        => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpperInvariant();
+
+    private static string Domain(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        try { return new Uri(url).Host.Replace("www.", ""); } catch { return url; }
+    }
+}

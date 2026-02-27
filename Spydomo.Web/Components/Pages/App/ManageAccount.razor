@@ -1,0 +1,331 @@
+﻿@page "/app/manage-account"
+@inject HttpClient Http
+@inject NavigationManager Nav
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Classes
+@layout AdminLayout
+@using Spydomo.DTO
+@using System.Net.Http.Headers
+@using Spydomo.Infrastructure.Clerk
+@using Spydomo.Infrastructure
+@inject ClerkJsInterop ClerkJs
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.Primitives;
+@using Spydomo.Web.Components.Pages.Parts
+@inject IDialogService Dialog
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject MetaService Meta
+@using Spydomo.Web.Components.Pages.App.Dialogs
+
+<PageTitle>Manage Account</PageTitle>
+<RequireRole Roles="admin,superadmin">
+    <AdminPageHeader Title="Client information"
+                     Kicker="Account"
+                     Icon="ph ph-identification-card"
+                     Subtext="These details will appear on invoices and account emails.">
+        <Actions>
+            @* optional 
+            <MudButton Href="/app/companies/new" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                <i class="ph ph-plus" style="margin-right:6px;"></i> Add company
+            </MudButton>*@
+        </Actions>
+    </AdminPageHeader>
+
+    @if (showSubscriptionRedirectBanner)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Elevation="0" Class="mb-3">
+            Please complete your profile before starting your subscription.
+        </MudAlert>
+    }
+
+
+    @if (!isReady)
+    {
+        <p>Loading client information...</p>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mt-4">
+            <EditForm Model="clientModel" OnValidSubmit="HandleValidSubmit" OnInvalidSubmit="OnInvalidSubmit">
+                <DataAnnotationsValidator />
+                @if (error)
+                {
+                    <MudText Color="@Color.Error">
+                        <ValidationSummary />
+                    </MudText>
+                }
+            
+                    <MudGrid GutterSize="3">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.Name" For="(() => clientModel.Name)" Label="Organization Name *" FullWidth="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.City" For="(() => clientModel.City)" Label="City" FullWidth="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.AddressLine1"
+                                          For="(() => clientModel.AddressLine1)"
+                                          Label="Street Address *"
+                                          FullWidth="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.PostalCode"
+                                          For="(() => clientModel.PostalCode)"
+                                          Label="ZIP / Postal Code *"
+                                          FullWidth="true" />
+                        </MudItem>
+
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.ContactName" For="(() => clientModel.ContactName)" Label="Contact Name *" FullWidth="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.ContactEmail" For="(() => clientModel.ContactEmail)" Label="Contact Email *" FullWidth="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="clientModel.BillingEmail" For="(() => clientModel.BillingEmail)" Label="Billing Email *" FullWidth="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                            Value="@clientModel.CountryCode"
+                            ValueChanged="OnCountryChanged"
+                            For="(() => clientModel.CountryCode)"
+                            Label="Country *">
+                                @foreach (var country in countries)
+                                {
+                                    <MudSelectItem Value="@country.Code">@country.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        @if (regions != null && regions.Any())
+                        {
+                            <MudItem xs="12" sm="6">
+                                <MudSelect @bind-Value="clientModel.RegionCode" Label="Region / State *"
+                                           For="(() => clientModel.RegionCode)" 
+                                           T="string" FullWidth="true">
+                                    @foreach (var region in regions)
+                                    {
+                                        <MudSelectItem Value="@region.Code">@region.Name</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        }
+                    
+
+                        <MudItem xs="12">
+                            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+                        </MudItem>
+                    </MudGrid>
+            
+            </EditForm>
+        </MudPaper>
+
+        @if (!showSubscriptionRedirectBanner)
+        {
+            <MudPaper Class="pa-4 mt-4">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.h6" Color="Color.Error">Delete account</MudText>
+                    <MudText Typo="Typo.body2">
+                        This will permanently close your Spydomo account, cancel your subscription,
+                        and remove your access. Some billing records may be retained as required by law.
+                    </MudText>
+
+                    <MudButton Color="Color.Error"
+                               Variant="Variant.Outlined"
+                               Class="mt-2"
+                               OnClick="ConfirmDeleteAccountAsync"
+                                Style="width:200px;">
+                        Delete my account
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+
+    }
+</RequireRole>
+
+@code {
+    private ClientModel clientModel = new();
+    private List<CountryDto>? countries;
+    private List<RegionDto>? regions;
+    private bool isReady = false;
+    private bool hasRendered = false;
+    private bool error = false;
+    private bool showSubscriptionRedirectBanner = false;
+    private int? quantityToTrack = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        countries = await Meta.GetCountriesAsync();
+        countries = countries
+            .OrderBy(c => c.Code == "CA" ? 0 : c.Code == "US" ? 1 : 2)
+            .ThenBy(c => c.Name)
+            .ToList();
+
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("redirectFrom", out var from) &&
+             !StringValues.IsNullOrEmpty(from) &&
+             from.ToString().Equals("subscription", StringComparison.OrdinalIgnoreCase))
+        {
+            showSubscriptionRedirectBanner = true;
+        }
+
+        if (query.TryGetValue("quantity", out var qtyStr) && int.TryParse(qtyStr, out var qty))
+            quantityToTrack = qty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasRendered)
+        {
+            hasRendered = true;
+
+            try
+            {
+                await LoadClientAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Final fallback error: " + ex.Message);
+                Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadClientAsync()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/account/client");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var client = await response.Content.ReadFromJsonAsync<ClientModel>();
+            if (client != null)
+            {
+                clientModel = client;
+                if (!string.IsNullOrEmpty(client.CountryCode))
+                    await LoadRegions(client.CountryCode);
+            }
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Snackbar.Add($"Failed to load client: {error}", Severity.Error);
+        }
+
+        isReady = true;
+    }
+
+    
+
+    private async Task OnCountryChanged(string countryCode)
+    {
+        clientModel.CountryCode = countryCode; // <- Make sure to reassign it
+        clientModel.RegionCode = null; // Reset selected region
+        await LoadRegions(countryCode);
+    }
+
+    private async Task LoadRegions(string countryCode)
+    {
+        regions = await Meta.GetRegionsAsync(countryCode);
+        StateHasChanged();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Put, "/api/account/client");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(clientModel);
+
+        var response = await Http.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Client info saved!", Severity.Success);
+
+            // Redirect to subscription with quantity if applicable
+            if (showSubscriptionRedirectBanner && quantityToTrack.HasValue)
+            {
+                await Task.Delay(100); // let snackbar show
+                Nav.NavigateTo($"/app/subscription?quantity={quantityToTrack}");
+            }
+        }
+        else
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Snackbar.Add($"Error saving client: {error}", Severity.Error);
+        }
+    }
+
+    private void OnInvalidSubmit(EditContext context)
+    {
+        error = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDeleteAccountAsync()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true
+        };
+
+        var dialog = Dialog.Show<DeleteAccountDialog>("Delete your Account?", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool ok && ok)
+        {
+            // Call your backend to:
+            // - cancel Stripe subscription
+            // - deactivate/delete client + user
+            // - queue data cleanup
+            // - logout
+
+            var token = await ClerkJs.GetSessionTokenAsync();
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/account/delete");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = null;
+
+            var response = await Http.SendAsync(request);
+
+            var body = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine($"[DeleteAccount] Status: {(int)response.StatusCode} {response.ReasonPhrase}");
+            Console.WriteLine($"[DeleteAccount] Body: {body}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Success: send them to a goodbye / logged-out page
+                Nav.NavigateTo("/goodbye", forceLoad: true);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"We couldn't delete your account. Please try again or contact support. (Status: {response.StatusCode} Error: {error})", Severity.Error);
+            }
+        }
+    }
+}

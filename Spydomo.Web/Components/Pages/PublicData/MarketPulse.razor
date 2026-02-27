@@ -1,0 +1,213 @@
+﻿@page "/pulse/{Slug}"
+@using System.Globalization
+@using Spydomo.DTO.MarketPulse;
+@using Spydomo.Infrastructure.Interfaces
+@inject NavigationManager Nav
+@inject IMarketPulseService PulseService
+@inject UserState UserState
+@rendermode InteractiveServer
+
+<PageTitle>@(Vm?.Title ?? "Market Pulse")</PageTitle>
+
+@if (Vm is null && _loading)
+{
+    <MudProgressCircular Class="mt-6" />
+}
+else if (Vm is null)
+{
+    <MudText Class="mt-6">This market pulse isn’t available.</MudText>
+    <MudButton OnClick="@(() => Nav.NavigateTo("/app/signup"))">Try Spydomo</MudButton>
+}
+else
+{
+
+    <div class="container page py-6 market-pulse-page">
+        <!-- HEADER -->
+        <MudStack Spacing="2" Class="mb-5">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h4" Class="fw-600" Style="text-transform: capitalize;">
+                    @(Vm?.Title ?? "Market Pulse")
+                </MudText>
+
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Variant="Variant.Outlined"
+                         Color="Color.Success"
+                         Class="group-privacy-chip">
+                    Public preview
+                </MudChip>
+            </MudStack>
+
+            <MudText Typo="Typo.subtitle2" Class="text-secondary">
+                Curated competitive signals — launches, positioning shifts, and conversion plays — one highlight per company.
+            </MudText>
+
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                This page shows <b>one curated signal</b> per company. Inside Spydomo, you get the full signal stream, grouped themes, and weekly strategic summaries for your private shortlist.
+            </MudAlert>
+
+        </MudStack>
+
+        <!-- GRID -->
+        <MudGrid GutterSize="3">
+            @foreach (var c in Vm!.Companies)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="2" Class="pa-4 pulse-card">
+                        <!-- top row -->
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudAvatar Size="Size.Medium" Class="pulse-avatar">@c.CompanyName[0]</MudAvatar>
+
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.subtitle1" Class="fw-600">
+                                        @c.CompanyName
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Class="text-secondary">
+                                        @c.PositioningTitle
+                                    </MudText>
+                                </MudStack>
+                            </MudStack>
+
+                        
+                        </MudStack>
+
+                        <!-- signal type chips -->
+                        <MudStack Row="true" Spacing="1" Class="mt-3 flex-wrap">
+                            @foreach (var st in c.SignalTypes.Take(2))
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Variant="Variant.Filled"
+                                         Color="Color.Primary"
+                                         Class="signaltype-chip">
+                                    @st
+                                </MudChip>
+                            }
+                        </MudStack>
+
+                        <!-- signal + why (featured brief) -->
+                        <div class="pulse-brief mt-3">
+                            <MudText Typo="Typo.overline" Class="pulse-brief-title">
+                                Featured signal
+                            </MudText>
+
+                            <MudText Typo="Typo.body1" Class="pulse-text">
+                                @c.Signal
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(c.WhyItMatters))
+                            {
+                                <MudText Typo="Typo.body2" Class="pulse-why">
+                                    <b>Why it matters:</b> @c.WhyItMatters
+                                </MudText>
+                            }
+                        </div>
+
+                        <!-- focus + keywords -->
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.overline" Class="kicker">What’s showing up lately</MudText>
+                                <MudStack Row="true" Spacing="1" Class="meta-wrap">
+                                    @foreach (var th in c.Themes.Take(2))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Class="meta-chip">
+                                            @th
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudItem>
+
+                            <MudItem xs="12" sm="6">
+                                <MudText Typo="Typo.overline" Class="kicker">Significant keywords</MudText>
+                                <MudStack Row="true" Spacing="1" Class="meta-wrap">
+                                    @foreach (var t in c.Tags.Take(3))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Class="meta-chip">
+                                            @t
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudItem>
+                        </MudGrid>
+
+                        <!-- teaser row -->
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-3">
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       OnClick="@(() => Nav.NavigateTo("/app/signup"))">
+                                Track this company →
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+
+        <!-- RELATED GROUPS -->
+        <MudPaper Class="p-4 mt-6 rounded-2xl card related-groups-card">
+            <MudText Typo="Typo.h6">Related groups</MudText>
+            <MudText Typo="Typo.caption" Class="legend mb-2">
+                Explore adjacent spaces that many teams in this category also evaluate.
+            </MudText>
+
+            <div class="related-groups-chips">
+                @foreach (var g in Vm?.RelatedGroups ?? Enumerable.Empty<RelatedGroupLinkDto>())
+                {
+                    <MudChip T="string"
+                             Variant="Variant.Outlined"
+                             Color="Color.Primary"
+                             Class="related-group-chip"
+                             OnClick="@(() => Nav.NavigateTo($"/pulse/{g.Slug}"))">
+                        @g.Name
+                    </MudChip>
+                }
+            </div>
+        </MudPaper>
+
+        <!-- CTA -->
+        <MudPaper Elevation="2" Class="pa-4 mt-6 cta-card">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h6" Class="mb-0">
+                    Want the full Market Pulse?
+                </MudText>
+
+                <MudText Typo="Typo.caption" Class="legend text-center">
+                    Build your shortlist. Get competitive-intel briefs and grouped themes as signals emerge. Move faster with less noise.
+                </MudText>
+
+                <MudButton Color="Color.Primary"
+                           Variant="Variant.Filled"
+                           Size="Size.Medium"
+                           OnClick="@(() => Nav.NavigateTo("/app/signup"))">
+                    CREATE MY PRIVATE GROUP
+                </MudButton>
+
+                
+            </MudStack>
+        </MudPaper>
+
+        <div class="mt-6">
+            <MudText Typo="Typo.caption" Class="text-muted mt-6">
+                Last updated @Vm!.LastUpdatedUtc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) 
+            </MudText>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = default!;
+    private MarketPulseViewModel? Vm;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        Vm = await PulseService.GetPulseAsync(Slug, forceRefresh: false);
+        _loading = false;
+    }
+
+    
+}
+

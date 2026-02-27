@@ -1,0 +1,103 @@
+﻿@using Microsoft.Extensions.Options
+@using Spydomo.Infrastructure.Clerk
+@inject IOptions<ClerkOptions> ClerkOptions
+
+@{
+    var force = "20260222";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Spydomo is an AI agent that delivers competitive-intelligence briefs from reviews and social: launches, pain points, trends. Less noise, more moves." />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <base href="/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    @* <script src="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2"></script> *@
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/regular/style.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@phosphor-icons/web@2.1.2/src/duotone/style.css">
+
+    <!-- Your CSS -->
+    <link href="/css/spydomo.css?v=@(force)" rel="stylesheet" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.ico" />
+    <HeadOutlet />
+
+    <!-- Privacy-friendly analytics by Plausible -->
+    <script async src="https://plausible.io/js/pa-9NBp68u6qE1qsxseqozYD.js"></script>
+    <script>
+        window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+        plausible.init()
+    </script>
+</head>
+
+<body>
+    <Routes />
+
+    <script src="_framework/blazor.web.js"></script>
+
+    <script src="/_content/MudBlazor/MudBlazor.min.js"></script>
+
+    <!-- Rest of your HTML file -->
+
+    <script async
+            crossorigin="anonymous"
+            data-clerk-publishable-key="@ClerkOptions.Value.PublishableKey"
+            src="https://cdn.jsdelivr.net/npm/@@clerk/clerk-js@latest/dist/clerk.browser.js")"
+            type="text/javascript">
+    </script>
+
+
+    <script>
+        window.addEventListener('load', async function () {
+            await Clerk.load();
+            console.log('ClerkJS is loaded'); 
+        });
+
+        function setupStickyShadow(dotNetRef) {
+            window.addEventListener('scroll', () => {
+                dotNetRef.invokeMethodAsync('OnScrollChanged', window.scrollY);
+            });
+        }
+        window.scrollToTop = () => {
+          try {
+            const hash = window.location.hash;
+            if (hash && hash.length > 1) {
+              // If the target element exists, do nothing (keep the anchor position).
+              const id = decodeURIComponent(hash.slice(1));
+              if (document.getElementById(id)) return;
+
+              // Optional: if you prefer to *correct* for a sticky header, uncomment:
+              const el = document.getElementById(id);
+               if (el) {
+                 const navH = parseInt(getComputedStyle(document.documentElement)
+                              .getPropertyValue('--nav-h')) || 0;
+                 const y = el.getBoundingClientRect().top + window.scrollY - navH;
+                 window.scrollTo({ top: y, behavior: 'auto' });
+                 return;
+               }
+            }
+          } catch { /* ignore */ }
+
+          // No hash: behave like before.
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+    </script>
+
+    <script src="/js/clerkInterop.js"></script>
+    <script src="/js/Spydomo.js?v=@(force)"></script>
+
+</body>
+
+</html>

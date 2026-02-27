@@ -1,0 +1,118 @@
+﻿@page "/signals/{CategorySlug}/{SignalTypeSlug}"
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.DTO.SignalLibrary
+@inject ISignalsLibraryService Svc
+
+<PageTitle>@($"{_categoryName} · {_signalTypeName}")</PageTitle>
+
+<div class="container page signals-page">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/signals">Signals</a> <span class="crumb-sep">›</span>
+        <a href="@($"/signals/{CategorySlug}")">@_categoryName</a> <span class="crumb-sep">›</span>
+        <span>@_signalTypeName</span>
+    </nav>
+
+    <div class="page-header sl-hero">
+        <h1>@_categoryName</h1>
+        <h2 class="sl-h2">@_signalTypeName</h2>
+        <p class="lede">Themes associated with this signal type in the last 30 days.</p>
+        @if (!string.IsNullOrWhiteSpace(_signalTypeDescription))
+        {
+            <p class="sl-desc">
+                <b>Definition:</b> @_signalTypeDescription
+            </p>
+        }
+        <div class="sl-hero-rule" aria-hidden="true"></div>
+
+        <!-- NEW: signal-type intro (SEO/AEO friendly) -->
+        <div class="sl-intro">
+            <p>
+                This page lists the recurring <b>themes</b> that show up when content is classified as
+                <b>@_signalTypeName</b> in the <b>@_categoryName</b> category.
+                Themes are the “why behind the signal” — repeated topics like onboarding friction, pricing clarity,
+                workflow efficiency, or AI integration.
+            </p>
+
+            <ul class="sl-bullets">
+                <li><b>Why it matters:</b> themes help you see patterns across many companies, not just one-off posts.</li>
+                <li><b>How to use it:</b> open a theme to see real examples and the stored reasons explaining why it was detected.</li>
+                <li><b>What the numbers mean:</b> counts and deltas reflect activity in the last 30 days (not total history).</li>
+            </ul>
+
+            <p class="subtle">
+                Each theme has its own URL for crawling and citation.
+            </p>
+        </div>
+    </div>
+
+    @if (_themes is null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else if (_themes.Count == 0)
+    {
+        <p class="muted">No themes found.</p>
+    }
+    else
+    {
+        <ul class="sl-list">
+            @foreach (var t in _themes)
+            {
+                <li class="sl-list-item">
+                    <a class="sl-list-link" href="@($"/signals/{CategorySlug}/{SignalTypeSlug}/{t.ThemeSlug}")">
+                        <div class="sl-list-title">
+                            @HumanizeTheme(t.ThemeName)
+                            @* Optional: show canonical slug (helps AEO + power users) *@
+                            @* <span class="sl-code">(@t.ThemeSlug)</span> *@
+                        </div>
+
+                        <div class="subtle num">
+                            @t.Last30Count signals | @FormatDelta(t.DeltaPct)
+                            @if (!string.IsNullOrWhiteSpace(t.Description))
+                            {
+                                <span> — @t.Description</span>
+                            }
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+
+@code {
+    [Parameter] public string CategorySlug { get; set; } = "";
+    [Parameter] public string SignalTypeSlug { get; set; } = "";
+
+    private string _categoryName = "Category";
+    private string _signalTypeName = "Signal type";
+    private List<ThemeRow>? _themes;
+    private string? _signalTypeDescription;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var res = await Svc.GetCategorySignalAsync(CategorySlug, SignalTypeSlug, DateTime.UtcNow, CancellationToken.None);
+        _categoryName = string.IsNullOrWhiteSpace(res.CategoryName) ? "Category" : res.CategoryName;
+        _signalTypeName = string.IsNullOrWhiteSpace(res.SignalTypeName) ? "Signal type" : res.SignalTypeName;
+        _themes = res.Themes;
+        _signalTypeDescription = string.IsNullOrWhiteSpace(res.SignalTypeDescription) ? "Signal type" : res.SignalTypeDescription;
+    }
+
+    private static string HumanizeTheme(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "";
+        s = s.Replace("-", " ").Replace("_", " ").Trim();
+        return char.ToUpperInvariant(s[0]) + s.Substring(1);
+    }
+
+
+    private static string FormatDelta(decimal d)
+        => d switch
+        {
+            > 0 => $"▲ {(d * 100m):0}%",
+            < 0 => $"▼ {Math.Abs(d * 100m):0}%",
+            _ => "— 0%"
+        };
+}

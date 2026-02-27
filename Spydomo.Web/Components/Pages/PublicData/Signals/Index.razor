@@ -1,0 +1,88 @@
+﻿@page "/signals"
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.DTO.SignalLibrary
+@inject ISignalsLibraryService Svc
+@rendermode InteractiveServer
+
+<PageTitle>Go-to-Market Signals Library</PageTitle>
+
+<div class="container page signals-page">
+
+    <div class="page-header sl-hero">
+        <h1>Go-to-Market Signals Library</h1>
+        <p class="lede">Browse categories, then drill into signal types and themes.</p>
+        <div class="sl-hero-rule" aria-hidden="true"></div>
+    </div>
+
+    <div class="sl-intro">
+        <p>
+            This library is a structured index of real go-to-market signals detected across B2B SaaS companies.
+            Each signal comes from a specific piece of content (feature launches, positioning updates, pricing discussions,
+            customer feedback, competitive mentions, and growth announcements) and is grouped to help you understand
+            <b>what’s changing in the market</b> — and <b>why it matters</b>.
+        </p>
+
+        <p class="subtle">
+            Definition: A “go-to-market signal” is a recognizable pattern in public content that indicates a meaningful change in strategy,
+            messaging, product direction, or customer experience.
+        </p>
+
+        <ul class="sl-bullets">
+            <li><b>Category</b> = the market space (e.g., Product Analytics, CRM, Customer Support).</li>
+            <li><b>Signal type</b> = the strategic pattern (Feature Launch, Positioning Shift, Conversion Angle, Pain Signal…).</li>
+            <li><b>Theme</b> = the recurring topic behind the signal (e.g., ease_of_use, workflow_efficiency, ai_integration).</li>
+            <li><b>Examples</b> = real snippets and stored “reasons” showing why a theme is showing up.</li>
+        </ul>
+
+        <p class="subtle">
+            How to use this page: pick a category, choose a signal type, then explore themes to see concrete examples you can learn from.
+        </p>
+
+        <p class="subtle">
+            Counts and deltas reflect activity from the <b>last 30 days</b>. This page is designed to be crawlable:
+            every category, signal type, and theme has its own URL.
+        </p>
+    </div>
+
+
+    @if (_rows is null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else
+    {
+        <div class="grid-3 sl-cards">
+            @foreach (var r in _rows)
+            {
+                <a class="card sl-card" href="@($"/signals/{r.CategorySlug}")">
+                    <div class="sl-card-title">@r.CategoryName</div>
+                    @if (!string.IsNullOrWhiteSpace(r.CategoryDescription))
+                    {
+                        <div class="muted example-meta">@r.CategoryDescription</div>
+                    }
+                    <div class="subtle num">
+                        @r.Last30Count signals | @FormatDelta(r.DeltaPct) in last 30 days
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+
+@code {
+    private List<SignalsIndexRow>? _rows;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rows = await Svc.GetCategoriesIndexAsync(DateTime.UtcNow, CancellationToken.None);
+    }
+
+    private static string FormatDelta(decimal d)
+        => d switch
+        {
+            > 0 => $"▲ {(d * 100m):0}%",
+            < 0 => $"▼ {Math.Abs(d * 100m):0}%",
+            _ => "— 0%"
+        };
+}

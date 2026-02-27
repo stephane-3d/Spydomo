@@ -1,0 +1,92 @@
+﻿@inject HttpClient Http
+@using Spydomo.DTO
+@using System.Net.Http.Headers
+@using Spydomo.Web.Classes
+@using Spydomo.Infrastructure.Clerk
+@inject ClerkJsInterop ClerkJs
+@using System.ComponentModel.DataAnnotations
+@inject ISnackbar Snackbar
+
+
+<MudDialog Style="width: 400px;">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Invite User</MudText>
+
+        <MudForm @ref="form">
+            <MudTextField @bind-Value="Name" Label="Name" For="@(() => Name)" Required="true" />
+            <MudTextField T="string" @bind-Value="Email" Label="Email" For="@(() => Email)" Required="true"
+                          Validation="@(new EmailAddressAttribute() {ErrorMessage = "The email address is invalid"})" />
+            <MudRadioGroup T="string" @bind-SelectedOption="Role">
+                <MudRadio T="string" Option="user" Label="User" />
+                <MudRadio T="string" Option="admin" Label="Admin" />
+            </MudRadioGroup>
+        </MudForm>
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="InviteAsync" Color="Color.Primary">Send Invite</MudButton>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public string Role { get; set; } = "user";
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    private MudForm form;
+
+    private async Task InviteAsync()
+    {
+        await form.Validate();
+
+        if (!form.IsValid)
+            return;
+
+        var token = await ClerkJs.GetSessionTokenAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/invite")
+            {
+                Content = JsonContent.Create(new { Name, Email, Role })
+            };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        try
+        {
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Invitation sent successfully!", Severity.Success, config =>
+                    {
+                    config.VisibleStateDuration = 4000;
+                    });
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(errorMessage) && response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    errorMessage = "Not authorized";
+
+                var err = "Failed to send invitation" + (string.IsNullOrEmpty(errorMessage) ? "" : $" (Error: {errorMessage})");
+                Snackbar.Add(err, Severity.Error, config =>
+                {
+                    config.VisibleStateDuration = 4000;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
+    }
+
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

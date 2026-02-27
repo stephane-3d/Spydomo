@@ -1,0 +1,176 @@
+﻿@using Spydomo.Common.Enums
+@using Spydomo.DTO.Datasheet
+@using Spydomo.Infrastructure
+@inject DatasheetService Api
+@inject DatasheetState DS
+@rendermode InteractiveServer
+
+<MudStack Spacing="2">
+
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+            Tags capture recurring topics about the company; filter by sentiment. Top 10 shown with volume bars and a one-line reason.
+        </MudAlert>
+
+        <div class="grow"></div>
+        <MudSelect T="TagSentimentFilter" @bind-Value="Filter" Dense="true" Variant="Variant.Outlined" Class="w-44">
+            <MudSelectItem Value="TagSentimentFilter.All">All sentiments</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Positive">Positive</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Neutral">Neutral</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Negative">Negative</MudSelectItem>
+        </MudSelect>
+        <MudSelect T="OriginFilter" @bind-Value="Origin" Dense="true" Variant="Variant.Outlined" Class="w-56">
+            <MudSelectItem Value="OriginFilter.All">All origins</MudSelectItem>
+            <MudSelectItem Value="OriginFilter.Company">Company-generated</MudSelectItem>
+            <MudSelectItem Value="OriginFilter.User">User-generated</MudSelectItem>
+        </MudSelect>
+
+    </MudStack>
+
+    @if (_loading)
+    {
+        <div class="ds-empty p-6"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+    }
+    else if (_companies.Count == 0 || _companies.All(c => c.Tags.Count == 0))
+    {
+        <div class="ds-empty p-6">
+            <MudText Typo="Typo.h6" Class="mb-1">No tags yet</MudText>
+            <MudText Class="text-muted">Try widening the period or changing the sentiment filter.</MudText>
+        </div>
+    }
+    else
+    {
+        <div class="sources-grid">
+            @foreach (var c in _companies.OrderBy(c => c.Company, StringComparer.OrdinalIgnoreCase))
+            {
+                <CompanyTagsCard Company="c" Filter="_filter" />
+            }
+        </div>
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public Period Period { get; set; }
+    [Parameter] public int? GroupId { get; set; }
+    [Parameter] public int? CompanyId { get; set; }
+    [Parameter] public string? Search { get; set; }
+    [Parameter] public int Take { get; set; } = 10;
+
+    private bool _hydrated;
+    private bool _loading = true;
+    private TagsKey _lastKey;
+    private List<TagsCompanyDto> _companies = new();
+
+    private TagSentimentFilter _filter = TagSentimentFilter.All;
+
+    private TagSentimentFilter Filter
+    {
+        get => _filter;
+        set
+        {
+            if (_filter == value) return;
+            _filter = value;
+            if (_hydrated) _ = LoadAsync(force: true);   // kick a reload on user change
+        }
+    }
+
+    private OriginFilter _origin = OriginFilter.All;
+    private OriginFilter Origin 
+    { 
+        get => _origin; 
+        set 
+        { 
+            if (_origin == value) 
+                return; 
+            _origin = value; 
+            if (_hydrated) 
+                _ = LoadAsync(force: true); 
+        } 
+    }
+
+    private string FilterToQuery(TagSentimentFilter f) => f switch
+    {
+        TagSentimentFilter.Positive => "pos",
+        TagSentimentFilter.Neutral => "neu",
+        TagSentimentFilter.Negative => "neg",
+        _ => "all"
+    };
+
+    private static string OriginToQuery(OriginFilter o) => o switch
+    {
+        OriginFilter.Company => "company",
+        OriginFilter.User => "user",
+        _ => "all"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hydrated = true;
+            await LoadAsync(force: true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_hydrated)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync(bool force = false)
+    {
+        if (!GroupId.HasValue)   // <- add this
+        {
+            _companies = new();
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var sent = FilterToQuery(_filter);
+        var orig = OriginToQuery(_origin);
+
+        var key = TagsKey.From(Period, GroupId, CompanyId, Search, sent, orig);
+
+        if (!force && key.Equals(_lastKey)) return;
+        _lastKey = key;
+
+        var hasCache = DS.TryGetTagsCompanies(key, out var cached, out var age);
+
+        if (!force && hasCache && age <= DS.TagsCacheFor)
+        {
+            _companies = cached;
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        if (hasCache && cached.Count > 0)
+        {
+            _companies = cached; // optimistic
+            _loading = true;
+            StateHasChanged();
+        }
+        else
+        {
+            _loading = true;
+            StateHasChanged();
+        }
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var fresh = await Api.GetTagsAsync(Period, GroupId, CompanyId, Search, sent, orig, Take, cts.Token);
+            _companies = fresh;
+            DS.PutTagsCompanies(key, fresh);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+}

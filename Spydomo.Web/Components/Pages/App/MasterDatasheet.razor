@@ -1,0 +1,329 @@
+﻿@page "/app/datasheet"
+@using System.Text
+@using MudBlazor
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Components.Pages.Parts
+@using Spydomo.Web.Components.Pages.App.Dialogs
+@layout AdminLayout
+
+@using Spydomo.Web.Components.Pages.App.DatasheetTabs
+@using Spydomo.DTO.Datasheet
+@using Spydomo.DTO
+@using Spydomo.Common.Enums
+@using Spydomo.Infrastructure.Interfaces
+
+@inject IJSRuntime JS
+@inject IClientContextService ClientContextService
+@inject ISnackbar Snackbar
+@inject ICompanyService CompanyService
+@inject ICompanyGroupService GroupService
+@inject IDialogService DialogService
+
+<PageTitle>Master Datasheet</PageTitle>
+
+<AdminPageHeader Title="Master Datasheet"
+                 Kicker="Competitive landscape"
+                 Icon="ph ph-table"
+                 Subtext="Compare positioning, categories, segments, and recent signals across your tracked companies. Filter by period, group, and company, then export.">
+</AdminPageHeader>
+
+<div class="callout callout-info" style="margin-bottom:15px">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="ds-toolbar">
+        <!-- Group picker -->
+        <MudButton Variant="Variant.Outlined"
+                   Size="Size.Small"
+                   Class="ds-group-btn"
+                   StartIcon="@Icons.Material.Filled.Folder"
+                   Disabled="!_listsReady"
+                   OnClick="PickGroupAsync">
+            @(_selectedGroup?.Name ?? "Group")
+        </MudButton>
+
+        <!-- Period -->
+        <MudSelect T="Period" Label="Period" @bind-Value="period" Dense="true" Class="ds-select" Disabled="!_listsReady">
+            <MudSelectItem Value="Period.D7">Last 7 days</MudSelectItem>
+            <MudSelectItem Value="Period.D30">Last 30 days</MudSelectItem>
+            <MudSelectItem Value="Period.D90">Last 90 days</MudSelectItem>
+            <MudSelectItem Value="Period.D180">Last 180 days</MudSelectItem>
+        </MudSelect>
+        
+        <!-- Company (nullable int) -->
+        <MudSelect T="int?" Label="Company"
+                   @bind-Value="selectedCompanyId"
+                   Clearable="true" Dense="true"
+                   Class="ds-company"
+                   Disabled="!_listsReady"
+                   @key="companiesKey">
+
+            @if (companies is null || companies.Count == 0)
+            {
+                <MudSelectItem T="int?" Value="@((int?)null)">(no companies)</MudSelectItem>
+            }
+            else
+            {
+                @foreach (var c in companies)
+                {
+                    <MudSelectItem Value="@((int?)c.CompanyId)">@c.DisplayName</MudSelectItem>
+                }
+            }
+        </MudSelect>
+
+        <!-- Search -->
+        <MudTextField @bind-Value="search"
+                      Label="Search"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Immediate="true" DebounceInterval="250"
+                      Dense="true" Class="ds-search" Disabled="!_listsReady" />
+        @*
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="ExportOverviewCsv"
+                   Class="ds-export"
+                   Disabled="overviewRef is null">
+            Export CSV
+        </MudButton>
+        *@
+    </MudStack>
+</div>
+
+
+<MudDivider Class="pa-2" />
+
+<MudTabs Border="true"
+         Rounded="true"
+         Elevation="0"
+         KeepPanelsAlive="false"
+         ActivePanelIndexChanged="OnTabChanged"
+         Class="ds-tabs">
+
+    <!-- ===================== OVERVIEW ===================== -->
+    <MudTabPanel Text="Overview">
+        @if (_activeTab == 0 && selectedGroupId.HasValue)
+        {
+        <Overview @ref="overviewRef"
+                  Period="@period"
+                  GroupId="@selectedGroupId"
+                  CompanyId="@selectedCompanyId"
+                 Search="@search"
+                      ClearRequested="ClearAllFilters" />
+        }
+    </MudTabPanel>
+
+    <!-- ===================== SOURCES ===================== -->
+    <MudTabPanel Text="Sources">
+        @if (_activeTab == 1 && selectedGroupId.HasValue)
+        {
+        <Sources @ref="sourcesRef"
+                 Period="@period"
+                 GroupId="@selectedGroupId"
+                 CompanyId="@selectedCompanyId"
+                 Search="@search" />
+        } 
+    </MudTabPanel>
+
+    <!-- ===================== KEYWORDS ===================== -->
+    <MudTabPanel Text="Keywords">
+        @if (_activeTab == 2 && selectedGroupId.HasValue)
+        {
+        <Keywords @ref="keywordsRef"
+                  Period="@period"
+                  GroupId="@selectedGroupId"
+                  CompanyId="@selectedCompanyId"
+                  Search="@search" />
+        }
+    </MudTabPanel>
+
+    <!-- ===================== THEMES (90d) ===================== -->
+    <MudTabPanel Text="Themes">
+        @if (_activeTab == 3 && selectedGroupId.HasValue)
+        {
+        <Themes @ref="themesRef"
+                Period="@period"
+                GroupId="@selectedGroupId"
+                CompanyId="@selectedCompanyId"
+                Search="@search" />
+        }
+    </MudTabPanel>
+
+    <!-- ===================== TAGS (90d) ===================== -->
+    <MudTabPanel Text="Tags">
+        @if (_activeTab == 4 && selectedGroupId.HasValue)
+        {
+        <Tags @ref="tagsRef"
+              Period="@period"
+              GroupId="@selectedGroupId"
+              CompanyId="@selectedCompanyId"
+              Search="@search" />
+        }
+    </MudTabPanel>
+
+    <!-- ===================== RAW SIGNALS (90d) ===================== -->
+    <MudTabPanel Text="Raw signals">
+        @if (_activeTab == 5 && selectedGroupId.HasValue)
+        {
+        <RawSignals @ref="rawSignalsRef"
+                    Period="@period"
+                    GroupId="@selectedGroupId"
+                    CompanyId="@selectedCompanyId" />
+        }
+    </MudTabPanel>
+</MudTabs>
+
+
+
+@code {
+    
+    // ---------- Toolbar state ----------
+    private Period period = Period.D90;
+    private int? selectedGroupId; // will be set to default-{clientId} on first render
+    private int _clientId;
+    private CompanyGroupDto? _selectedGroup; // for display name
+
+    private int? selectedCompanyId = null;
+    private string search = string.Empty;
+
+    private int companiesKey => companies?.Count ?? 0;
+
+    // Lists for selects
+    private List<CompanyGroupDto> groups = new();
+    private List<TrackedCompanyDto> companies = new();
+    private bool _listsReady = false;
+
+    // Child refs
+    private Overview? overviewRef;
+    private Sources? sourcesRef;
+    private Keywords? keywordsRef;
+    private Themes? themesRef;
+    private Tags? tagsRef;
+    private RawSignals? rawSignalsRef;
+
+    private bool _hydrated;
+
+    private int _activeTab = 0;
+    private void OnTabChanged(int i) => _activeTab = i;
+
+    private static string FormatPercent(decimal v) => $"{Math.Round(v * 100m):0}%";
+
+    private static string DefaultSlug(int clientId) => $"default-{clientId}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _hydrated = true;
+
+        try
+        {
+            _clientId = await ClientContextService.GetCurrentClientIdAsync();
+            if (_clientId == 0) return;
+
+            // 1) Load groups (you can optimize later, but this is fine)
+            groups = await GroupService.GetCompanyGroupsForClientAsync(_clientId);
+
+            // 2) Pick default group by immutable slug: default-{clientId}
+            _selectedGroup = groups.FirstOrDefault(g =>
+                string.Equals(g.Slug, DefaultSlug(_clientId), StringComparison.OrdinalIgnoreCase));
+
+            // fallback: if somehow missing, choose oldest or first
+            _selectedGroup ??= groups.OrderBy(g => g.CreatedAt).FirstOrDefault();
+
+            selectedGroupId = _selectedGroup?.Id;
+
+            // 3) Load companies scoped to selected group
+            companies = await CompanyService.GetTrackedCompaniesForClientAsync(_clientId, selectedGroupId);
+
+            _listsReady = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load toolbar lists: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ExportOverviewCsv()
+    {
+        try
+        {
+            if (overviewRef is not null)
+                await overviewRef.ExportCsv();   // expose this public method in OverviewTab
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private static IEnumerable<string> FlattenEvidence(List<List<string>>? groups, int maxLines)
+    {
+        if (groups is null) yield break;
+        int count = 0;
+        foreach (var g in groups)
+            foreach (var s in g)
+            {
+                yield return s;
+                if (++count >= maxLines) yield break;
+            }
+    }
+
+    private static string InfoTip(string? reason, decimal confidence)
+    {
+        var sb = new StringBuilder();
+        sb.Append("Confidence: ").Append(FormatPercent(confidence));
+        if (!string.IsNullOrWhiteSpace(reason))
+            sb.Append('\n').Append(reason);
+        return sb.ToString();
+    }
+
+
+    private static string EvidenceTooltip(List<List<string>> groups)
+    {
+        if (groups is null || groups.Count == 0) return "No evidence captured.";
+        var sb = new StringBuilder();
+        foreach (var g in groups)
+            foreach (var s in g)
+                if (!string.IsNullOrWhiteSpace(s))
+                    sb.Append('•').Append(' ').Append(s).Append('\n');
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string DefaultGroupSlug(int clientId) => $"default-{clientId}";
+
+    private async Task PickGroupAsync()
+    {
+        // Your dialog can be passed the full list, OR fetch inside dialog.
+        // Reusing existing dialog: pass groups + current selection.
+        var parameters = new DialogParameters
+        {
+            ["ClientId"] = _clientId,
+            ["SelectedGroupId"] = selectedGroupId
+        };
+
+        var dlg = DialogService.Show<GroupPickerDialog>("Select a group", parameters);
+        var res = await dlg.Result;
+        if (res.Canceled) return;
+
+        if (res.Data is not int newId) return; // safety
+        if (newId == selectedGroupId) return;
+
+        selectedGroupId = newId;
+        _selectedGroup = groups.FirstOrDefault(g => g.Id == newId);
+        selectedCompanyId = null;
+
+        companies = await CompanyService.GetTrackedCompaniesForClientAsync(_clientId, selectedGroupId);
+        StateHasChanged();
+
+    }
+    
+    private async Task ClearAllFilters()
+    {
+        selectedCompanyId = null;
+        search = string.Empty;
+
+        // group should NOT clear anymore; keep default group
+        // selectedGroupId stays as-is
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

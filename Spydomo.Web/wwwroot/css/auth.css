@@ -1,0 +1,150 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&display=swap");
+
+:root {
+    --brand: #2b4740;
+    --fg: #0f172a;
+    --muted: #475569;
+    --ring: #e2e8f0;
+    --bg: #ffffff;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Public Sans", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+}
+
+.auth-wrap {
+    min-height: 100svh;
+    display: flex;
+    align-items: flex-start; /* top-align the card */
+    justify-content: center;
+    padding: clamp(24px, 6vh, 56px) 24px; /* comfy top padding on big screens */
+}
+
+.auth-card {
+    width: min(1080px, 96vw);
+    border: 1px solid var(--ring);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(2,8,23,.06);
+    padding: 28px;
+    background: #fff;
+}
+
+.auth-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr; /* left a hair wider for image */
+    gap: 32px;
+    align-items: center;
+}
+
+.hero {
+    text-align: left;
+}
+
+    .hero h1 {
+        font-size: 38px;
+        font-weight:300;
+        line-height: 1.25;
+        margin: 0 0 14px;
+        color: var(--fg);
+        letter-spacing: .2px;
+    }
+
+    .hero img {
+        width: 100%;
+        max-width: 480px; /* tune as you like */
+        height: auto;
+        display: block;
+    }
+
+.clerk-host {
+    max-width: 420px;
+    margin-inline: auto;
+}
+
+/* Clerk theme alignment */
+:where(.cl-root) {
+    --cl-colorPrimary: var(--brand);
+    --cl-fontFamily: ui-sans-serif, system-ui, -apple-system, "Public Sans", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    --cl-borderRadius: 12px;
+}
+
+/* Responsive */
+@media (max-width: 920px) {
+    .auth-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .hero {
+        text-align: center;
+    }
+
+        .hero img {
+            margin-inline: auto;
+            max-width: 360px;
+        }
+}
+
+/* add these */
+.tagline {
+    font-size: 26px;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: .2px;
+    margin: 0 0 12px;
+    text-wrap: balance; /* keeps it pretty on medium widths */
+    color: var(--fg);
+}
+
+    .tagline::after {
+        content: "";
+        display: block;
+        width: 64px;
+        height: 3px;
+        background: var(--brand); /* #2b4740 */
+        border-radius: 2px;
+        margin-top: 10px;
+    }
+
+/* optional: soften the body copy inside Clerk to match */
+:where(.cl-root) {
+    --cl-fontFamily: ui-sans-serif, system-ui, -apple-system, "Public Sans", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+    --cl-colorPrimary: var(--brand);
+    --cl-borderRadius: 12px;
+}
+
+.clerk-host {
+    align-self: flex-start;
+    margin-top: 4px;
+}
+
+.auth-grid {
+    gap: 24px;
+}
+/* a touch tighter */
+.auth-card {
+    padding: 24px 28px;
+}
+/* trims extra space */
+
+.tagline {
+    max-width: 32ch; /* controls line length */
+    text-wrap: balance; /* prettier wrap */
+}
+
+    .tagline::after {
+        width: 64px;
+        height: 3px;
+        margin: 10px 0 0 2px; /* tiny left offset = nicer */
+        background: var(--brand);
+        border-radius: 2px;
+    }
+
+.hero img {
+    max-width: 440px;
+}
+/* was 480; feel free to try 420–460 */

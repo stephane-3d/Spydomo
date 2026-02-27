@@ -1,0 +1,219 @@
+﻿@page "/privacy"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Privacy policy — Spydomo</PageTitle>
+
+<ContentPage Title="Privacy Policy"
+             Subtitle="Effective Date: August 6, 2025"
+             HeroImageUrl="/assets/privacy.png"
+             HeroAlt=""
+             TitleIconUrl="">
+
+    <p>
+        Spydomo (“we,” “our,” or “us”) is committed to protecting your privacy.
+        This Privacy Policy explains how we collect, use, and safeguard your information
+        when you use our website and services.
+    </p>
+
+    <h4 class="mt-4">1. Information We Collect</h4>
+    <ul>
+        <li>
+            <strong>Personal Information:</strong> Name, email address, company name, billing information,
+            and any details you provide when creating an account, subscribing, or contacting us.
+        </li>
+        <li>
+            <strong>Usage Data:</strong> Log data such as pages visited, referrers, approximate location
+            (country/region), device type, and general usage patterns. We use this to operate, maintain,
+            and improve our services.
+        </li>
+        <li>
+            <strong>Technical Data:</strong> IP address, device information, and basic diagnostic data used
+            for security, fraud prevention, and service reliability.
+        </li>
+    </ul>
+
+    <p class="mt-2">
+        For privacy-friendly analytics we use Plausible Analytics, which provides aggregated statistics
+        without using cookies or collecting personal data such as full IP addresses or persistent identifiers.
+    </p>
+
+    <h4 class="mt-4">Public content and reviews</h4>
+    <p>
+        As part of our services, Spydomo collects and analyzes publicly available content about companies,
+        such as reviews on software marketplaces, public forum posts, and social media discussions related
+        to software tools and services.
+    </p>
+    <p>
+        Where we collect public content that may include personal information (for example names or usernames
+        in reviews), we primarily use it to generate aggregated and anonymized insights about companies.
+        We do not build profiles of individuals, and we limit our retention of raw content to the period
+        necessary to produce these summaries.
+    </p>
+
+    <h4 class="mt-4">2. How We Use Your Information</h4>
+    <p>We use your information to:</p>
+    <ul>
+        <li>Provide, operate, and improve our services</li>
+        <li>Process payments and manage subscriptions</li>
+        <li>Send important notifications and product updates</li>
+        <li>Respond to support requests and provide customer service</li>
+        <li>Monitor usage, ensure security, and prevent abuse or fraud</li>
+        <li>Understand how Spydomo is used in aggregate so we can make better product decisions</li>
+    </ul>
+
+    <h4 class="mt-4">3. Sharing of Information</h4>
+    <p>We do not sell your personal data. We may share information with:</p>
+    <ul>
+        <li>
+            <strong>Service Providers:</strong> Trusted third parties who help us deliver our services
+            (for example, payment processors, email delivery providers, hosting providers, and our
+            privacy-focused analytics provider, Plausible Analytics). They are only allowed to use your data
+            as needed to perform services on our behalf.
+        </li>
+        <li>
+            <strong>Legal Authorities:</strong> If required by law, court order, or to protect our rights,
+            users, or the public.
+        </li>
+    </ul>
+
+    <h4 class="mt-4">4. Data Security</h4>
+    <p>
+        We implement technical and organizational measures to protect your data from unauthorized access,
+        loss, misuse, or disclosure. However, no system is 100% secure.
+        Please use strong passwords and protect your account credentials.
+    </p>
+
+    <h4 class="mt-4">5. Data Retention</h4>
+    <p>
+        We keep your personal information only for as long as necessary to provide the services,
+        maintain security, resolve disputes, and fulfill the purposes described in this policy,
+        unless a longer retention period is required or permitted by law.
+    </p>
+    <p>
+        For example, we may retain billing and invoice records for several years to comply with
+        tax and accounting obligations, even after you close your account.
+    </p>
+    <p>
+        When we no longer need your personal information, we will delete it or anonymize it so that
+        it can no longer be linked back to you.
+    </p>
+    <p>
+        We may also retain anonymized or aggregated data (such as overall statistics about products
+        or companies) after your account is closed, as this data no longer identifies you or your
+        organization.
+    </p>
+
+    <h4 class="mt-4">6. Your Choices & Control</h4>
+    <p>You can:</p>
+    <ul>
+        <li>Update your personal information in your account settings (where available)</li>
+        <li>Unsubscribe from non-essential emails using the link in those messages</li>
+        <li>Request deletion of your account and associated personal data, subject to legal obligations</li>
+    </ul>
+    <p>
+        If you need help managing your data, you can contact us at
+        <a href="mailto:info@spydomo.com">info@spydomo.com</a>.
+    </p>
+
+    <h4 class="mt-4">7. International Users</h4>
+    <p>
+        Spydomo is based in Canada and may process and store your data in Canada or other countries.
+        These countries may have different data protection laws than your country of residence.
+    </p>
+    <p>
+        Where required, we take steps to ensure an appropriate level of protection for your personal data
+        in accordance with applicable laws (for example, using data processing agreements with our providers).
+    </p>
+
+    <h4 class="mt-4">8. GDPR Compliance (for EU/EEA & UK Users)</h4>
+    <p>
+        If you are a resident of the European Economic Area (EEA) or the United Kingdom, you have specific
+        rights under data protection laws such as the GDPR and the UK GDPR. These include:
+    </p>
+    <ul>
+        <li>The right to access, correct, or delete your personal data</li>
+        <li>The right to object to or restrict the processing of your data</li>
+        <li>The right to data portability</li>
+        <li>The right to withdraw consent at any time (when processing is based on consent)</li>
+        <li>The right to lodge a complaint with your local data protection authority</li>
+    </ul>
+    <p>
+        We act as the “data controller” for your personal information. If you wish to exercise any of these rights,
+        please email us at <a href="mailto:info@spydomo.com">info@spydomo.com</a>.
+        We will respond as required by applicable law (typically within 30 days).
+    </p>
+    <p>We only process your data when we have a legal basis to do so, such as:</p>
+    <ul>
+        <li>Your consent</li>
+        <li>The necessity to perform a contract with you (e.g., providing the service you signed up for)</li>
+        <li>Compliance with a legal obligation</li>
+        <li>
+            Our legitimate interests (for example, product improvement, security, preventing fraud),
+            provided those interests are not overridden by your rights and interests
+        </li>
+    </ul>
+    <p>
+        For more information about the third-party service providers we use to deliver Spydomo,
+        see our <a href="/subprocessors">Subprocessors</a> page.
+    </p>
+
+
+    <h4 class="mt-4">9. Cookies & Analytics</h4>
+    <p>
+        We use cookies and similar technologies to make Spydomo work securely and reliably.
+        At this stage, we primarily use <strong>essential cookies</strong>, such as:
+    </p>
+    <ul>
+        <li>Authentication cookies to keep you logged in</li>
+        <li>Security-related cookies (for example, to help prevent fraud or abuse)</li>
+        <li>Basic preferences that help the site function as expected</li>
+    </ul>
+
+    <p>
+        For website analytics, we use Plausible Analytics, a privacy-focused, cookieless analytics service.
+        Plausible does not use cookies, does not collect personal data such as full IP addresses, and only
+        provides us with aggregated statistics about traffic and usage patterns.
+    </p>
+
+    <p>
+        Because our analytics setup does not rely on tracking cookies or personal data, and because we only use
+        essential cookies for core functionality, you generally will not see a cookie consent banner when using Spydomo.
+        If this changes in the future (for example, if we introduce additional non-essential cookies
+        or marketing tools), we will update this policy and ask for your consent where required by law.
+    </p>
+
+    <p>
+        You can control or disable cookies through your browser settings. However, disabling essential cookies
+        may affect your ability to use key parts of the service (such as logging in).
+    </p>
+
+    <h4 class="mt-4">10. Children’s Privacy</h4>
+    <p>
+        Spydomo is not intended for children under 13, and we do not knowingly collect personal data from minors.
+        If you believe a child has provided us with personal information, please contact us so we can delete it.
+    </p>
+
+    <h4 class="mt-4">11. Changes to This Policy</h4>
+    <p>
+        We may update this Privacy Policy from time to time. Any changes will be posted on this page with an
+        updated “Effective Date.” We encourage you to review this policy periodically.
+    </p>
+
+    <h4 class="mt-4">12. Contact Us</h4>
+    <p>
+        If you have questions about this Privacy Policy or how we handle your data, you can email us at
+        <a href="mailto:info@spydomo.com">info@spydomo.com</a>.
+    </p>
+</ContentPage>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

@@ -1,0 +1,29 @@
+﻿@inherits LayoutComponentBase
+@namespace Spydomo.Web.Components.Layout
+
+@* Required *@
+<MudThemeProvider Theme="MyCustomTheme" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+
+<div class="container-fluid min-vh-100 d-flex">
+    <div class="row justify-content-center align-items-center w-100">
+        <div class="col-12 col-md-8 col-lg-7">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+
+    MudTheme MyCustomTheme = new MudTheme()
+    {
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Public Sans", "sans-serif" }
+            }
+        }
+    };
+    
+}

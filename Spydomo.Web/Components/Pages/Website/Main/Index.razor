@@ -1,0 +1,163 @@
+﻿@page "/"
+@using Spydomo.Web.Components.Layout
+@using System.ComponentModel.DataAnnotations
+@using Spydomo.Infrastructure
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@layout MainLayout
+
+<PageTitle>Spydomo - AI Agent - Competitive intelligence. Curated for you.</PageTitle>
+
+<section class="hero">
+    <div class="container hero-grid">
+        <div>
+            <div class="eyebrow">Signals, not noise</div>
+            <h1><span class="hero-h1-line">Competitive intelligence.</span><br />Curated for you.</h1>
+            <p class="lede">
+                Spydomo is an AI agent that turns reviews, social chatter, and launch news into
+                competitive-intelligence briefs for B2B SaaS—so you spot opportunities
+                and risks faster.
+            </p>
+
+            <div class="hero-actions hero-row">
+                <div class="chips">
+                    <span class="chip"><i class="ph ph-check-circle"></i> No setup</span>
+                    <span class="chip"><i class="ph ph-check-circle"></i> No integrations</span>
+                    <span class="chip"><i class="ph ph-check-circle"></i> No dashboards</span>
+                </div>
+                <a class="btn primary" href="/app/signup">Start Your 14&#8209;day Free Trial</a>
+            </div>
+
+        </div>
+
+        <div>
+            <img src="/assets/hero.png" alt="Analyst bot illustration" loading="lazy" />
+        </div>
+    </div>
+</section>
+
+<section id="how">
+    <div class="container">
+        <h2 class="section-title">How it works</h2>
+        <div class="grid-3">
+
+            <div class="card how-card">
+                <span class="kicker">1</span>
+                <i class="ph ph-magnifying-glass icon" aria-hidden="true"></i>
+                <h3>Add a company</h3>
+                <p class="muted">Paste a URL. That’s it—no integrations, no configs.</p>
+            </div>
+
+            <div class="card how-card">
+                <span class="kicker">2</span>
+                <i class="ph ph-plug icon" aria-hidden="true"></i>
+                <h3>We find the sources</h3>
+                <p class="muted">G2, Reddit, LinkedIn, blogs and more—auto-discovered.</p>
+            </div>
+
+            <div class="card how-card">
+                <span class="kicker">3</span>
+                <i class="ph ph-cpu icon" aria-hidden="true"></i>
+                <h3>AI distills the signal</h3>
+                <p class="muted">Launches, pains, trends—clean, structured insights.</p>
+            </div>
+
+            <div class="card how-card">
+                <span class="kicker">4</span>
+                <i class="ph ph-bell icon" aria-hidden="true"></i>
+                <h3>Get your brief</h3>
+                <p class="muted">A concise weekly email—no dashboard building required.</p>
+            </div>
+
+            <div class="card how-card">
+                <span class="kicker">5</span>
+                <i class="ph ph-chart-line-up icon" aria-hidden="true"></i>
+                <h3>Spot moves fast</h3>
+                <p class="muted">Compare rivals and see momentum at a glance.</p>
+            </div>
+
+            <div class="card how-card">
+                <span class="kicker">6</span>
+                <i class="ph ph-share-network icon" aria-hidden="true"></i>
+                <h3>Share in one click</h3>
+                <p class="muted">Send the brief to founders, product, or your clients.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+
+<section id="use-cases">
+    <div class="container">
+        <h2 class="section-title">Who is this for?</h2>
+        <div class="grid-4">
+            <div class="card use-card">
+                <i class="ph ph-lightbulb use-icon" aria-hidden="true"></i>
+                <h3>Entrepreneurs</h3>
+                <p class="muted">Uncover pain points and product opportunities before they go mainstream.</p>
+            </div>
+
+            <div class="card use-card">
+                <i class="ph ph-graph use-icon" aria-hidden="true"></i>
+                <h3>Product Teams</h3>
+                <p class="muted">Track emerging feature requests, complaints, and market shifts in real time.</p>
+            </div>
+
+            <div class="card use-card">
+                <i class="ph ph-users-three use-icon" aria-hidden="true"></i>
+                <h3>Agencies</h3>
+                <p class="muted">Bring sharper competitive insights to your clients—stay ahead of the pitch.</p>
+            </div>
+
+            <div class="card use-card">
+                <i class="ph ph-trend-up use-icon" aria-hidden="true"></i>
+                <h3>Investors</h3>
+                <p class="muted">Spot momentum, headwinds, and product velocity across your portfolio and targets.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section id="pricing">
+    <div class="container">
+        <h2 class="section-title">Pricing</h2>
+
+        <!-- the mint pill with sparkles -->
+        <div style="text-align:center; margin-bottom:14px;">
+            <span class="price-badge">
+                <i class="ph ph-sparkle sparkle-icon" aria-hidden="true"></i>
+                <span class="price-row">
+                    <span class="price">$10</span>
+                    <span class="unit">per company per month</span>
+                </span>
+                <i class="ph ph-sparkle sparkle-icon" aria-hidden="true"></i>
+            </span>
+        </div>
+
+        <p class="subtle" style="text-align:center; max-width:720px; margin:0 auto 14px;">
+            As simple as that. No fluff. No contract. No hidden fees.
+            Try Spydomo free for 14 days. No credit card required.
+            Upgrade anytime to track more companies. Prices in USD$.
+        </p>
+
+        <div style="text-align:center;">
+            <a class="btn primary" href="/app/signup">Start Your 14-day Free Trial</a>
+        </div>
+    </div>
+</section>
+
+
+
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

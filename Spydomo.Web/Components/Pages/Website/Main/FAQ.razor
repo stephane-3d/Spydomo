@@ -1,0 +1,98 @@
+﻿@page "/faq"
+@using MudBlazor
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>FAQ — Spydomo</PageTitle>
+
+<ContentPage Title="Frequently Asked Questions"
+             Subtitle=""
+             HeroImageUrl="/assets/faq.png"
+             HeroAlt=""
+             TitleIconUrl="">
+
+    <MudExpansionPanels Elevation="1" ExpandIcon="@Icons.Material.Filled.KeyboardArrowDown">
+        <MudExpansionPanel Text="What is Spydomo?">
+            Spydomo is your competitive radar. We monitor your market, analyze signals from reviews,
+            content, and chatter, and deliver smart summaries to help you stay ahead — without the grunt work.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Who is it for?">
+            We built Spydomo for B2B SaaS founders, marketers, and product teams — as well as agencies managing
+            multiple clients who need a constant pulse on competitors.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="How often is the data updated?">
+            We refresh your tracked companies on a rolling basis — usually every few days depending on the source.
+            You’ll always see the latest insights without lifting a finger.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Can I choose which companies to track?">
+            Yes! You choose the companies that matter to you — competitors, partners, or even your own brand.
+            We take care of the rest.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Do you offer a free trial?">
+            We currently offer a 14-day free trial so you can see how Spydomo fits into your workflow.
+            No long-term commitment. You can upgrade, downgrade, or cancel at any time.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Where is your data coming from?">
+            We collect data from public sources like review sites (G2, Capterra, TrustRadius), LinkedIn posts,
+            Reddit discussions, and more. Everything is summarized into useful, categorized insights about companies
+            and products — not about individuals.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Is my data safe?">
+            Absolutely. We never sell your data, and we only use trusted infrastructure and service providers
+            to run Spydomo. You remain the owner of your account data, and you can delete it at any time.
+            For the details, see our <a href="/privacy" class="text-primary">Privacy Policy</a> and
+            <a href="/dpa" class="text-primary">Data Processing Agreement</a>.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Do you track individual people?">
+            No. Spydomo is focused on companies and products, not individuals. We analyze public reviews and
+            discussions to extract themes, trends, and signals at the company level. We don’t build behavior profiles
+            of specific people, and we only keep raw content as long as needed to generate aggregated insights.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="How do you handle GDPR and data protection?">
+            We designed Spydomo with modern privacy laws in mind, including GDPR. When we process personal data on
+            your behalf, our <a href="/dpa" class="text-primary">DPA</a> applies. EU and UK users keep all of their
+            usual rights (access, correction, deletion, etc.), and we’re happy to help you exercise them — just reach
+            out at <a href="mailto:info@spydomo.com" class="text-primary">info@spydomo.com</a>.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Do you use cookies or tracking pixels?">
+            We use privacy-friendly analytics (Plausible) to understand overall usage, without cookies or cross-site
+            tracking. We don’t run ad pixels or retargeting scripts. If this ever changes, we’ll update our Privacy
+            Policy accordingly.
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="What happens if I cancel?">
+            You can cancel at any time. Your subscription will stop at the end of the current billing period
+            and you won’t be charged again. We may retain some data for legitimate reasons (like billing records),
+            but if you want your account completely removed, just email us at
+            <a href="mailto:info@spydomo.com" class="text-primary">info@spydomo.com</a>.
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <div class="cta-row">
+        <a href="mailto:info@spydomo.com" class="btn primary">
+            <i class="ph ph-envelope btn-icon" aria-hidden="true"></i>
+            Have any other questions? Email us!
+        </a>
+    </div>
+
+</ContentPage>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

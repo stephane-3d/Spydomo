@@ -1,0 +1,174 @@
+﻿@page "/pricing"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Pricing</PageTitle>
+
+<section class="mk-hero">
+    <div class="container">
+        <div class="mk-hero-inner">
+            <div>
+                <h1 class="mk-title">Pricing</h1>
+                <p class="mk-lead">
+                    Simple pricing that scales with the only thing that matters: how many companies you track.
+                    No tiers, no seat limits, no feature gating.
+                </p>
+
+                <div class="mk-actions">
+                    <a class="btn primary" href="/app/signup">Start free (14 days)</a>
+                    <a class="btn" href="/how-it-works">How it works</a>
+                </div>
+
+                <p class="mk-note">
+                    You can upgrade, downgrade, or cancel anytime.
+                </p>
+            </div>
+
+            <div class="mk-hero-media" aria-hidden="true">
+                <img src="/assets/pricing.png" alt="Robot powering an insight machine" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-section">
+    <div class="container">
+        <div class="price-center">
+            <span class="price-badge">
+                <i class="ph ph-sparkle sparkle-icon" aria-hidden="true"></i>
+                <span class="price-row">
+                    <!-- keep price in one place in code so it’s easy to change later -->
+                    <span class="price">@Price</span>
+                    <span class="unit">per company per month</span>
+                </span>
+                <i class="ph ph-sparkle sparkle-icon" aria-hidden="true"></i>
+            </span>
+
+            <p class="subtle price-sub">
+                As simple as that. No fluff. No contract. No hidden fees.
+                Try Spydomo free for 14 days. No credit card required.
+                <br />
+                Upgrade anytime to track more companies. Prices in USD.
+            </p>
+
+            @*<div class="price-actions">
+                <a class="btn primary" href="/app/signup">Start your 14-day free trial</a>
+            </div>*@
+        </div>
+    </div>
+</section>
+
+<section class="mk-section mk-alt price-includes">
+    <div class="container">
+        <h2 class="section-title">What’s included</h2>
+
+        <div class="grid-3">
+            <div class="card">
+                <i class="ph ph-clock-counter-clockwise use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Continuous tracking</h3>
+                <p class="muted">Spydomo runs on a schedule so you don’t have to “remember to check.”</p>
+            </div>
+
+            <div class="card">
+                <i class="ph ph-file-text use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Curated weekly brief</h3>
+                <p class="muted">A clean digest of what changed and why it matters — designed to be shared.</p>
+            </div>
+
+            <div class="card">
+                <i class="ph ph-link-simple use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Sources &amp; traceability</h3>
+                <p class="muted">Every insight links back to the original review, post, or mention.</p>
+            </div>
+
+            <div class="card">
+                <i class="ph ph-arrows-left-right use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Competitor comparisons</h3>
+                <p class="muted">See patterns across rivals — launches, messaging, themes, momentum.</p>
+            </div>
+
+            <div class="card">
+                <i class="ph ph-stack use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Organized insights</h3>
+                <p class="muted">Signals are distilled into structured insights your team can actually use.</p>
+            </div>
+
+            <div class="card">
+                <i class="ph ph-share-network use-icon" aria-hidden="true"></i>
+                <h3 style="margin-top:0">Shareable output</h3>
+                <p class="muted">Forward a consistent, credible format to execs, product, marketing, or clients.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section class="mk-section">
+    <div class="container">
+        <h2 class="section-title">FAQ</h2>
+
+        <div class="mk-faq">
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">Do you charge per user?</h3>
+                <p class="muted">No. Pricing is per tracked company, so you can share internally without worrying about seats.</p>
+            </div>
+
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">What happens after the trial?</h3>
+                <p class="muted">You can upgrade anytime to keep tracking. If you don’t, nothing is charged.</p>
+            </div>
+
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">Can I change the number of companies?</h3>
+                <p class="muted">Yes — upgrade or downgrade anytime. Your billing adjusts accordingly.</p>
+            </div>
+
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">Can I cancel anytime?</h3>
+                <p class="muted">Absolutely. No contracts, no “talk to sales.”</p>
+            </div>
+
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">What currency are prices in?</h3>
+                <p class="muted">USD.</p>
+            </div>
+
+            <div class="card mk-faq-item">
+                <h3 style="margin-top:0">Is this “just a GPT wrapper?”</h3>
+                <p class="muted">
+                    No — Spydomo uses AI under the hood, but the value is the system:
+                    source discovery, tracking, structure, memory over time, and a consistent output your team can rely on.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-cta">
+    <div class="container">
+        <div class="card mk-cta-card">
+            <h2 style="margin-top:0">Start small. Get signal fast.</h2>
+            <p class="muted" style="max-width:70ch">
+                Add one company and a few competitors. You’ll get value quickly — then the weekly cadence keeps you ahead.
+            </p>
+            <div class="mk-actions">
+                <a class="btn primary" href="/app/signup">Start your 14-day free trial</a>
+                <a class="btn" href="/use-cases">See use cases</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    // One place to change later.
+    private const string Price = "$10";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

@@ -1,0 +1,156 @@
+﻿@using Spydomo.DTO.Datasheet
+@using Spydomo.Common.Enums
+@using Spydomo.Infrastructure
+@inject DatasheetService Api
+@inject DatasheetState DS
+@rendermode InteractiveServer
+
+<MudStack Spacing="2">
+
+    <!-- Local toolbar for this tab -->
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudSwitch T="bool" @bind-Value="_normalizeGlobal" Color="Color.Primary" Label="Normalize across companies" />
+        <MudTooltip Text="Off: % of each company's total. On: scaled to the largest single-source count across all companies, so widths are comparable between cards.">
+            <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="text-muted ml-1" />
+        </MudTooltip>
+        <div class="grow"></div>
+        @*<MudSelect T="SourcesSort" @bind-Value="_sortBy" Dense="true" Class="w-44">
+            <MudSelectItem Value="SourcesSort.Total">Sort: Total volume</MudSelectItem>
+            <MudSelectItem Value="SourcesSort.UserShare">Sort: User share</MudSelectItem>
+            <MudSelectItem Value="SourcesSort.Alpha">Sort: A–Z</MudSelectItem>
+        </MudSelect>
+    <div class="grow"></div>*@
+        @* (Optional) Put a small refresh button if you want *@
+        @* <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="() => LoadAsync(force:true)" /> *@
+    </MudStack>
+
+    @if (_loading)
+    {
+        <div class="ds-empty p-6"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <div class="ds-empty p-6">
+            <MudText Typo="Typo.h6" Class="mb-1">No sources yet</MudText>
+            <MudText Class="text-muted">Try widening the period or adding companies.</MudText>
+        </div>
+    }
+    else
+    {
+        <div class="sources-grid">
+            @foreach (var c in SortedRows())
+            {
+                <CompanySourcesCard Company="c"
+                                    NormalizeGlobal="_normalizeGlobal"
+                                    GlobalMax="_globalMax" />
+            }
+        </div>
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public Period Period { get; set; }
+    [Parameter] public int? GroupId { get; set; }
+    [Parameter] public int? CompanyId { get; set; }
+    [Parameter] public string? Search { get; set; }
+
+    private bool _hydrated;
+    private bool _loading = true;
+    private List<SourcesCompanyDto> _rows = new();
+    private SourcesKey _lastKey;
+
+    private bool _normalizeGlobal = false;
+    private SourcesSort _sortBy = SourcesSort.Total;
+    private int _globalMax = 1;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hydrated = true;
+            await LoadAsync(force: true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_hydrated)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync(bool force = false)
+    {
+        if (!GroupId.HasValue)   // <- add this
+        {
+            _rows = new();
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var key = SourcesKey.From(Period, GroupId, CompanyId, Search);
+        if (!force && key.Equals(_lastKey)) return;
+        _lastKey = key;
+
+        var hasCache = DS.TryGetSources(key, out var cached, out var age);
+
+        if (!force && hasCache && age <= DS.SourcesCacheFor)
+        {
+            _rows = cached;
+            _globalMax = ComputeGlobalMax(_rows);
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        if (hasCache && cached.Count > 0)
+        {
+            _rows = cached;
+            _globalMax = ComputeGlobalMax(_rows);
+            _loading = true;
+            StateHasChanged();
+        }
+        else
+        {
+            _loading = true;
+            StateHasChanged();
+        }
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var fresh = await Api.GetSourcesAsync(Period, GroupId, CompanyId, Search, cts.Token);
+            _rows = fresh;
+            _globalMax = ComputeGlobalMax(_rows);
+            DS.PutSources(key, fresh);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private static int ComputeGlobalMax(List<SourcesCompanyDto> rows)
+    {
+        // largest single-source count across all companies (for global normalization)
+        var maxCompany = rows.SelectMany(r => r.CompanyGenerated.Concat(r.UserGenerated))
+                             .Select(s => s.Count)
+                             .DefaultIfEmpty(1)
+                             .Max();
+        return Math.Max(1, maxCompany);
+    }
+
+    private IEnumerable<SourcesCompanyDto> SortedRows() => _sortBy switch
+    {
+        SourcesSort.Alpha => _rows.OrderBy(r => r.Company, StringComparer.OrdinalIgnoreCase),
+        SourcesSort.UserShare => _rows.OrderByDescending(r =>
+        {
+            var user = r.UserGenerated.Sum(x => x.Count);
+            return r.Total == 0 ? 0.0 : (double)user / r.Total;
+        }),
+        _ => _rows.OrderByDescending(r => r.Total)
+    };
+
+}

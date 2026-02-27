@@ -1,0 +1,587 @@
+﻿@page "/app/subscription"
+@using Spydomo.Infrastructure.Billing.DTO
+@inject HttpClient Http
+@using System.Net.Http.Headers
+@inject ClerkJsInterop ClerkJs
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Classes
+@layout AdminLayout
+@inject ISnackbar Snackbar
+@rendermode InteractiveServer
+@using Spydomo.DTO
+@using Microsoft.AspNetCore.Components
+@using Spydomo.Web.Classes.Extensions
+@using Microsoft.AspNetCore.WebUtilities
+@inject IDialogService DialogService 
+@inject NavigationManager Navigation
+@using Spydomo.Common.Enums
+@using Spydomo.Web.Components.Pages.App.Dialogs
+@using Spydomo.Infrastructure.Clerk
+@using Spydomo.Web.Components.Pages.Parts
+
+
+<PageTitle>Plan & Billing</PageTitle>
+<RequireRole Roles="admin,superadmin">
+    <AdminPageHeader
+      Title="Plan & Billing"
+      Kicker="Billing"
+      Icon="ph ph-credit-card"
+      Subtext="Change plan, update payment method, and download invoices." />
+
+
+    <MudPaper Class="pa-4 mb-4">
+        @if (isLoading)
+        {
+            <p>Loading subscription info...</p>
+        }
+        else if (subscriptionStatus is null)
+        {
+            <div class="callout callout-info" style="margin-bottom:15px">
+                <div class="callout-icon"><i class="ph ph-credit-card"></i></div>
+                <div>
+                    <strong>No active subscription yet.</strong>
+                    <div>Pick how many companies you want to track and start your 14-day trial. You can change or cancel anytime.</div>
+                </div>
+            </div>
+
+
+            <MudSlider T="int" 
+                @bind-Value="selectedQuantity"
+                Min="1" Max="100"
+                Step="1"
+                Style="width: 500px;" />
+
+            <MudText Class="mt-2 mb-4"><b>Total:</b> @selectedQuantity * 10$ = <b>$@(selectedQuantity * 10)</b> per month</MudText>
+
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ValidateBeforeStart">
+                Start Subscription
+            </MudButton>
+        }
+        else
+        {
+
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h6">Subscription Details</MudText>
+
+                <MudText><b>Status:</b> @subscriptionStatus.Status</MudText>
+                <MudText><b>Companies Tracked:</b> @subscriptionStatus.TrackedCount</MudText>
+                <MudText><b>Next Billing Date:</b> @subscriptionStatus.NextBillingDate?.ToString("yyyy-MM-dd")</MudText>
+
+                <MudText>
+                    Your plan allows for <b>@subscriptionStatus.PlanCompaniesCount</b> companies
+                    (@remainingSlots remaining)
+                </MudText>
+
+                @if (subscriptionStatus.Status == "active" &&
+                       subscriptionStatus.CancelAtPeriodEnd &&
+                       subscriptionStatus.CancelAt.HasValue)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true">
+                        Your subscription will end on <b>@subscriptionStatus.CancelAt.Value.ToLocalTime().ToString("MMMM d, yyyy")</b>.
+                    </MudAlert>
+
+                    <MudButton Color="Color.Primary"
+                    OnClick="RestartSubscription"
+                    Disabled="@(!canRestart)"
+                    Style="align-self: start; width: auto;"
+                    Variant="Variant.Filled">
+                        Restart Subscription
+                    </MudButton>
+                }
+
+                @if (creditAmount > 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                        💰 You have a <b>@creditAmount.ToString("C")</b> credit that will be automatically applied to your next invoice.
+                    </MudAlert>
+                }
+
+                <MudGrid Class="mt-2" GutterSize="3" AlignItems="AlignItems.Stretch">
+                    <!-- Left side -->
+                    <MudItem xs="12" md="8">
+                        <MudPaper Class="pa-4 d-flex flex-column" Style="height:100%;">
+                            <MudText Typo="Typo.h6" Class="mb-2">Change Plan Quantity</MudText>
+
+                            <MudText Typo="Typo.body2">
+                                Change how many companies are included in your plan:
+                            </MudText>
+
+                            <MudText Color="Color.Error"
+                                     Typo="Typo.caption"
+                                     Class="mb-1"
+                                     Style="@(selectedQuantity < subscriptionStatus.TrackedCount ? "display: block;" : "display: none;")">
+                                You cannot downgrade below your currently tracked companies (@subscriptionStatus.TrackedCount).
+                            </MudText>
+
+                            <MudSlider T="int" 
+                                       @bind-Value="selectedQuantity"
+                                       Min="@subscriptionStatus.TrackedCount"
+                                       Max="100"
+                                       Step="1"
+                                       Class="mt-2"
+                                       Style="width:100%;" />
+
+                            <MudText Class="mt-2 mb-4">
+                                <b>Total:</b> @selectedQuantity × $10 = <b>$@(selectedQuantity * 10)</b> per month
+                            </MudText>
+
+                            <MudSpacer /> @* pushes button to bottom when card grows *@
+
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       Disabled="@(selectedQuantity == subscriptionStatus.PlanCompaniesCount
+                                                                          || selectedQuantity < subscriptionStatus.TrackedCount
+                                                                          || isPendingCancel)"
+                                   OnClick="TryUpgradeAsync"
+                                   Style="align-self:flex-start;">
+                            Update Subscription
+                        </MudButton>
+                    </MudPaper>
+                </MudItem>
+
+                    <!-- Right side -->
+                    <MudItem xs="12" md="4">
+                        <MudPaper Class="pa-4 d-flex flex-column" Style="height:100%;">
+                            <MudText Typo="Typo.h6" Class="mb-3">Manage Subscription</MudText>
+
+                            <MudStack Spacing="2">
+                                <MudButton Color="Color.Secondary"
+                                           Variant="Variant.Outlined"
+                                           Disabled="@isPendingCancel"
+                                           OnClick="PromptCancelConfirmation">
+                                    Cancel Subscription
+                                </MudButton>
+
+                                <MudButton Color="Color.Info"
+                                           Variant="Variant.Outlined"
+                                           OnClick="UpdatePaymentInfo">
+                                    Update Payment Information
+                                </MudButton>
+                            </MudStack>
+
+                            <MudSpacer />
+
+                            @* optional: small helper text at the bottom *@
+                            @if (isPendingCancel)
+                            {
+                                <MudText Typo="Typo.caption" Class="mt-3">
+                                    Your subscription is scheduled to end at the next billing date.
+                                </MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        }
+    </MudPaper>
+
+
+    <MudPaper Class="pa-4 mb-4">
+        <h2 style="margin-bottom:10px;">Invoices</h2>
+        @if (invoices.Any())
+        {
+            <MudTable Items="@invoices" Hover="true">
+                <HeaderContent>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Amount</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>PDF</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Date.ToString("yyyy-MM-dd")</MudTd>
+                    <MudTd>@context.Amount.ToString("C")</MudTd>
+                    <MudTd>@context.Status</MudTd>
+                    <MudTd><MudButton Href="@context.PdfUrl" Target="_blank">View</MudButton></MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else if (!isLoading)
+        {
+            <div class="callout callout-info" style="margin-bottom:15px">
+                <div class="callout-icon"><i class="ph ph-invoice"></i></div>
+                <div>
+                    No invoices yet.
+                </div>
+            </div>
+        }
+    </MudPaper>
+</RequireRole>
+
+@code {
+    //private UserDto? user;
+    private bool isLoading = true;
+    private SubscriptionStatusDto? subscriptionStatus;
+    private List<InvoiceDto> invoices = new();
+    private int unitPricePerCompany = 10;
+
+    private bool hasRendered = false;
+    private bool isPendingCancel = false;
+    private bool canRestart = false;
+    private int selectedQuantity = 1;
+    private int remainingSlots => subscriptionStatus.PlanCompaniesCount - subscriptionStatus.TrackedCount; // assuming TrackedCount exists
+
+    private decimal creditAmount = 0;
+
+    protected override void OnInitialized()
+    {
+        if (Navigation.TryGetQueryString<int>("quantity", out var qty))
+            selectedQuantity = qty;
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasRendered)
+        {
+            hasRendered = true;
+
+            try
+            {
+                @*var token = await ClerkJs.GetSessionTokenAsync();
+
+                var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/whoami");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var response = await Http.SendAsync(request);
+                if (response.IsSuccessStatusCode)
+                {
+                    user = await response.Content.ReadFromJsonAsync<UserDto>();
+                }
+                else
+                {
+                    Navigation.NavigateTo("/app/login", true);
+                }*@
+
+                var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+                var query = QueryHelpers.ParseQuery(uri.Query);
+
+                if (query.TryGetValue("quantity", out var qtyStr) && int.TryParse(qtyStr, out var qty))
+                {
+                    selectedQuantity = qty;
+                    await StartSubscription(); // launch it automatically
+                }
+
+                if (query.TryGetValue("checkout", out var checkoutStatus))
+                {
+                    if (checkoutStatus == "success")
+                    {
+                        Snackbar.Add("Your subscription was successfully activated!", Severity.Success);
+                    }
+                    else if (checkoutStatus == "cancel")
+                    {
+                        Snackbar.Add("You cancelled the checkout. No changes were made.", Severity.Warning);
+                    }
+                }
+
+                StateHasChanged();
+
+                await LoadSubscriptionStatus();
+                await LoadInvoices();
+                await CheckForCreditAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading subscription data: " + ex.Message);
+                Snackbar.Add($"Error loading subscription data: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged(); // force re-render after data is ready
+            }
+        }
+    }
+
+    private async Task LoadInvoices()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        // Load invoices
+        var invoiceReq = new HttpRequestMessage(HttpMethod.Get, "/api/subscription/invoices");
+        invoiceReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var invoiceRes = await Http.SendAsync(invoiceReq);
+        if (invoiceRes.IsSuccessStatusCode)
+        {
+            invoices = await invoiceRes.Content.ReadFromJsonAsync<List<InvoiceDto>>();
+        }
+    }
+
+    private async Task ValidateBeforeStart()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/account/client");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Unable to retrieve client info. Please try again.", Severity.Error);
+            return;
+        }
+
+        var client = await response.Content.ReadFromJsonAsync<ClientDto>();
+
+        if (string.IsNullOrWhiteSpace(client.BillingEmail) ||
+            string.IsNullOrWhiteSpace(client.Name) ||
+            string.IsNullOrWhiteSpace(client.ContactName) ||
+            string.IsNullOrWhiteSpace(client.CountryCode) ||
+            string.IsNullOrWhiteSpace(client.City))
+        {
+            Navigation.NavigateTo($"/app/manage-account?redirectFrom=subscription&quantity={selectedQuantity}");
+            return;
+        }
+
+        await StartSubscription();
+    }
+
+
+    private async Task StartSubscription()
+    {
+        try
+        {
+            var token = await ClerkJs.GetSessionTokenAsync();
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/subscription/start?quantity={selectedQuantity}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CheckoutResponseDto>();
+                if (result?.Url is not null)
+                {
+                    Navigation.NavigateTo(result.Url, forceLoad: true);
+                }
+                else
+                {
+                    Snackbar.Add("Failed to redirect to payment. Please try again.", Severity.Error);
+                }
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Failed to start subscription. Reason: {errorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task UpdateSubscription()
+    {
+        try
+        {
+            var token = await ClerkJs.GetSessionTokenAsync();
+            var request = new HttpRequestMessage(HttpMethod.Post, $"/api/subscription/update?quantity={selectedQuantity}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Subscription updated successfully.", Severity.Success);
+                await LoadSubscriptionStatus(); // Refresh UI
+                await LoadInvoices();
+                await CheckForCreditAsync();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Failed to update subscription: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task CheckForCreditAsync()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/subscription/credit");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<decimal>();
+            creditAmount = result;
+        }
+    }
+
+    private async Task PromptCancelConfirmation()
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ConfirmDialog.NextBillingDate), subscriptionStatus.NextBillingDate }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = DialogService.Show<ConfirmDialog>("Are you sure you want to cancel the subscription?", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool confirm && confirm)
+        {
+            await CancelSubscription();
+        }
+    }
+
+    private async Task CancelSubscription()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/subscription/cancel");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Your subscription has been cancelled.", Severity.Success);
+            await LoadSubscriptionStatus(); // refresh
+        }
+        else
+        {
+            Snackbar.Add("Failed to cancel subscription.", Severity.Error);
+        }
+    }
+
+    private async Task RestartSubscription()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/subscription/restart");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Your subscription has been restarted.", Severity.Success);
+            await LoadSubscriptionStatus();
+        }
+        else
+        {
+            Snackbar.Add("Failed to restart subscription.", Severity.Error);
+        }
+    }
+
+
+    private async Task LoadSubscriptionStatus()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        // Load subscription status
+        var statusReq = new HttpRequestMessage(HttpMethod.Get, "/api/subscription/status");
+        statusReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var statusRes = await Http.SendAsync(statusReq);
+        if (statusRes.IsSuccessStatusCode)
+        {
+            subscriptionStatus = await statusRes.Content.ReadFromJsonAsync<SubscriptionStatusDto>();
+            selectedQuantity = Math.Max(subscriptionStatus.PlanCompaniesCount, subscriptionStatus.TrackedCount);
+
+            isPendingCancel = subscriptionStatus.Status == "active" &&
+                       subscriptionStatus.CancelAtPeriodEnd &&
+                       subscriptionStatus.CancelAt.HasValue;
+
+            canRestart = subscriptionStatus.Status == "active" &&
+                       subscriptionStatus.CancelAtPeriodEnd &&
+                       subscriptionStatus.CancelAt > DateTime.UtcNow;
+
+        }
+    }
+
+    private async Task UpdatePaymentInfo()
+    {
+        try
+        {
+            var token = await ClerkJs.GetSessionTokenAsync();
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/subscription/update-payment-method");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await Http.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CheckoutResponseDto>();
+                if (result?.Url is not null)
+                {
+                    Navigation.NavigateTo(result.Url, forceLoad: true);
+                }
+                else
+                {
+                    Snackbar.Add("Failed to redirect to payment update.", Severity.Error);
+                }
+            }
+            else
+            {
+                Snackbar.Add("Failed to update payment information.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task TryUpgradeAsync()
+    {
+        var oldQuantity = subscriptionStatus.PlanCompaniesCount;
+        if (selectedQuantity <= oldQuantity)
+        {
+            await ConfirmDowngradeAsync(selectedQuantity); // Or just save it directly
+            return;
+        }
+
+        var estimatedCharge = EstimateProratedCharge(
+            oldQuantity,
+            selectedQuantity,
+            subscriptionStatus.CurrentPeriodStart!.Value,
+            subscriptionStatus.NextBillingDate!.Value,
+            unitPricePerCompany
+        );
+
+        var parameters = new DialogParameters
+        {
+            { nameof(ConfirmUpgradeDialog.OldQuantity), oldQuantity },
+            { nameof(ConfirmUpgradeDialog.NewQuantity), selectedQuantity },
+            { nameof(ConfirmUpgradeDialog.EstimatedCharge), estimatedCharge }
+        };
+
+        var dialog = DialogService.Show<ConfirmUpgradeDialog>("Confirm Plan Upgrade", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await UpdateSubscription();
+        }
+    }
+
+    private decimal EstimateProratedCharge(int currentQty, int newQty, DateTime periodStart, DateTime periodEnd, decimal unitPrice)
+    {
+        if (newQty <= currentQty) return 0;
+
+        var extraUnits = newQty - currentQty;
+        var now = DateTime.UtcNow;
+        var totalDays = (periodEnd - periodStart).TotalDays;
+        var remainingDays = (periodEnd - now).TotalDays;
+
+        var ratio = remainingDays / totalDays;
+        return Math.Round(unitPrice * extraUnits * (decimal)ratio, 2);
+    }
+
+    private async Task ConfirmDowngradeAsync(int newQuantity)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(ConfirmDowngradeDialog.OldQuantity), subscriptionStatus.PlanCompaniesCount },
+            { nameof(ConfirmDowngradeDialog.NewQuantity), newQuantity }
+        };
+
+        var dialog = DialogService.Show<ConfirmDowngradeDialog>("Confirm Downgrade", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is true)
+        {
+            await UpdateSubscription();
+        }
+    }
+
+
+}

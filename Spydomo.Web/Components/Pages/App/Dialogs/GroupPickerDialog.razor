@@ -1,0 +1,81 @@
+﻿@using Spydomo.DTO
+@using Spydomo.Infrastructure.Interfaces
+@inject ICompanyGroupService GroupService
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_q"
+                      Label="Search groups"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mb-3" />
+
+        <MudPaper Outlined="true" Class="pa-2" Style="max-height: 420px; overflow:auto;">
+            <MudList T="CompanyGroupDto" Dense="true">
+                @foreach (var g in Filtered())
+                {
+                    <MudListItem T="CompanyGroupDto"
+                                 Value="g"
+                                 OnClick="@(() => Select(g))"
+                                 Style="cursor:pointer;"
+                                 Class="@ItemClass(g)">
+                        <MudText Typo="Typo.body2">@g.Name</MudText>
+                        <MudText Typo="Typo.caption" Class="text-muted">
+                            @g.CompanyCount company@(g.CompanyCount == 1 ? "" : "ies")
+                        </MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int ClientId { get; set; }
+    [Parameter] public int? SelectedGroupId { get; set; }
+
+    private List<CompanyGroupDto> _all = new();
+    private string _q = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _all = await GroupService.GetCompanyGroupsForClientAsync(ClientId);
+    }
+
+    private IEnumerable<CompanyGroupDto> Filtered()
+    {
+        if (string.IsNullOrWhiteSpace(_q))
+            return _all.OrderByDescending(x => x.CreatedAt);
+
+        var q = _q.Trim();
+        return _all
+            .Where(x => (x.Name ?? "").Contains(q, StringComparison.OrdinalIgnoreCase)
+                     || (x.Slug ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.Name);
+    }
+
+    private void Select(CompanyGroupDto g)
+    => MudDialog.Close(DialogResult.Ok(g.Id));
+
+    public sealed class PickedGroup
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string ItemClass(CompanyGroupDto g)
+    => g.Id == SelectedGroupId
+        ? "group-picker-item is-selected"
+        : "group-picker-item";
+
+}

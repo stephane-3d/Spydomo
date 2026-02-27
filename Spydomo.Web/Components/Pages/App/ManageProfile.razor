@@ -1,0 +1,179 @@
+﻿@page "/app/manage-profile"
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Classes
+@layout AdminLayout
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Authorization
+@using System.Net.Http.Headers
+@using Spydomo.DTO
+@using Spydomo.Infrastructure.Clerk
+@inject ClerkJsInterop ClerkJs
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ClerkBackend ClerkBackend
+@inject ISnackbar Snackbar
+@using Spydomo.Web.Components.Pages.Parts
+
+@rendermode InteractiveServer
+@*attribute [Authorize]*@
+
+<PageTitle>Manage profile</PageTitle>
+<RequireRole Roles="user, admin">
+    <AdminPageHeader
+      Title="My Profile"
+      Kicker="Profile"
+      Icon="ph ph-user-circle"
+      Subtext="Update your name, email, and password." />
+
+
+    @if (!isReady)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <!-- Email + Role -->
+        <MudPaper Class="pa-4 mb-5">
+            <MudText Typo="Typo.h6" Class="mb-2">Email Address</MudText>
+            <MudText Typo="Typo.body1">@user.Email</MudText>
+            <MudText Typo="Typo.subtitle2" Class="mt-3">User Role: @user.Role</MudText>
+        </MudPaper>
+
+        <!-- Display Name -->
+        <MudPaper Class="pa-4 mb-5">
+            <MudText Typo="Typo.h6" Class="mb-3">Display Name</MudText>
+
+            <MudGrid GutterSize="3">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="name" Variant="Variant.Outlined" FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12" sm="4" Class="d-flex align-items-end pb-2">
+                    <MudButton OnClick="SaveNameAsync" Disabled="isSaving" Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <!-- Change Password -->
+        <MudPaper Class="pa-4 mb-5">
+            <MudText Typo="Typo.h6" Class="mb-3">Change Password</MudText>
+
+            <MudGrid GutterSize="3">
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="newPassword" Label="New Password" InputType="InputType.Password" Variant="Variant.Filled" FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="confirmPassword" Label="Confirm Password" InputType="InputType.Password" Variant="Variant.Filled" FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ChangePasswordAsync">
+                        Save New Password
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+</RequireRole>
+
+@code {
+    private bool isReady = false;
+    private bool hasRendered = false;
+    private UserDto user = new();
+
+    private string newPassword = string.Empty;
+    private string confirmPassword = string.Empty;
+
+    private string name = "";
+    private bool isSaving = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasRendered)
+        {
+            hasRendered = true;
+
+            try
+            {
+                var token = await ClerkJs.GetSessionTokenAsync();
+
+                var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/whoami");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var response = await Http.SendAsync(request);
+                if (response.IsSuccessStatusCode)
+                {
+                    user = await response.Content.ReadFromJsonAsync<UserDto>();
+                    name = string.IsNullOrEmpty(user.Name) ? user.Email : user.Name;
+                    isReady = true;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Navigation.NavigateTo("/app/login", true);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error fetching Clerk user: " + ex.Message);
+                Navigation.NavigateTo("/app/login", true);
+            }
+        }
+    }
+
+    private async Task SaveNameAsync()
+    {
+        isSaving = true;
+
+        try
+        {
+            var token = await ClerkJs.GetSessionTokenAsync();
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "/api/users/update-name");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = JsonContent.Create(new { Name = name });
+
+            var response = await Http.SendAsync(request);
+            isSaving = false;
+
+            if (response.IsSuccessStatusCode)
+                Snackbar.Add("Display name updated!", Severity.Success);
+            else
+                Snackbar.Add("Failed to update name.", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            isSaving = false;
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+        {
+            Snackbar.Add("Password must be at least 8 characters.", Severity.Warning);
+            return;
+        }
+
+        if (newPassword != confirmPassword)
+        {
+            Snackbar.Add("Passwords do not match.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var clerkUserId = await ClerkJs.GetCurrentUserIdAsync();
+            await ClerkBackend.UpdateUserPasswordAsync(clerkUserId, newPassword);
+
+            Snackbar.Add("Password updated successfully!", Severity.Success);
+            newPassword = confirmPassword = "";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Password update failed: " + ex.Message);
+            Snackbar.Add("Failed to update password.", Severity.Error);
+        }
+    }
+}

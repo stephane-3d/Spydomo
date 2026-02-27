@@ -1,0 +1,125 @@
+﻿@using Spydomo.Common.Enums
+@using Spydomo.DTO.Datasheet
+@using Spydomo.Infrastructure
+@inject DatasheetService Api
+@inject DatasheetState DS
+@rendermode InteractiveServer
+
+<MudStack Spacing="2">
+
+    <!-- (Optional) local toolbar space kept for parity -->
+    <MudStack Spacing="2">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                These keywords summarize how the company positions itself and is perceived externally. We show up to 12, each with a one-line reason.
+            </MudAlert>
+            <div class="grow"></div>
+            @* <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="() => LoadAsync(force:true)" /> *@
+        </MudStack>
+    </MudStack>
+
+
+    @if (_loading)
+    {
+        <div class="ds-empty p-6"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+    }
+    else if (_companies.Count == 0)
+    {
+        <div class="ds-empty p-6">
+            <MudText Typo="Typo.h6" Class="mb-1">No keywords yet</MudText>
+            <MudText Class="text-muted">Try widening the period or adding companies.</MudText>
+        </div>
+    }
+    else
+    {
+        <div class="sources-grid">
+            @foreach (var c in SortedCompanies())
+            {
+                <CompanyKeywordsCard Company="c" />
+            }
+        </div>
+    }
+
+</MudStack>
+
+@code {
+    [Parameter] public Period Period { get; set; }
+    [Parameter] public int? GroupId { get; set; }
+    [Parameter] public int? CompanyId { get; set; }
+    [Parameter] public string? Search { get; set; }
+
+    private bool _hydrated;
+    private bool _loading = true;
+    private List<KeywordsCompanyDto> _companies = new();
+    private KeywordsKey _lastKey;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hydrated = true;
+            await LoadAsync(force: true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_hydrated)
+            await LoadAsync();
+    }
+
+    public Task RefreshAsync() => LoadAsync(force: true);
+
+    private async Task LoadAsync(bool force = false)
+    {
+        if (!GroupId.HasValue)   // <- add this
+        {
+            _companies = new();
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        var key = KeywordsKey.From(Period, GroupId, CompanyId, Search);
+        if (!force && key.Equals(_lastKey)) return;
+        _lastKey = key;
+
+        var hasCache = DS.TryGetKeywordsCompanies(key, out var cached, out var age);
+
+        if (!force && hasCache && age <= DS.KeywordsCacheFor)
+        {
+            _companies = cached;
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        if (hasCache && cached.Count > 0)
+        {
+            _companies = cached; // optimistic
+            _loading = true;
+            StateHasChanged();
+        }
+        else
+        {
+            _loading = true;
+            StateHasChanged();
+        }
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var fresh = await Api.GetKeywordsAsync(Period, GroupId, CompanyId, Search, take: 15, cts.Token);
+            _companies = fresh;
+            DS.PutKeywordsCompanies(key, fresh);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<KeywordsCompanyDto> SortedCompanies()
+        => _companies.OrderBy(r => r.Company, StringComparer.OrdinalIgnoreCase);
+}

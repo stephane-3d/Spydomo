@@ -1,0 +1,221 @@
+﻿@using Spydomo.DTO.Datasheet
+@using Spydomo.Common.Enums
+@using Spydomo.Web.Classes.Extensions
+@using Spydomo.Infrastructure
+
+@inject DatasheetService Api
+@inject DatasheetState DS
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@if (!_hydrated || !_resolved)
+{
+  <div class="ds-empty p-6">
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+  </div>
+}
+else if (ShowOnboarding)
+{
+  <div class="ds-empty p-6">
+    <img src="/assets/app-default.png" alt="Onboarding robot" class="empty-img mb-4" style="max-width: 300px;" />
+    <MudText Typo="Typo.h5" Class="mb-2">You need at least one company to get started</MudText>
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Business"
+               OnClick="@(() => Navigation.NavigateTo("/app/companies"))">
+      Add a company
+    </MudButton>
+  </div>
+}
+else if (_rows.Count == 0)
+{
+  <div class="ds-empty p-6">
+    <MudText Typo="Typo.h6" Class="mb-1">No results</MudText>
+    <MudText Class="mb-3 text-muted">Try clearing filters or widening the period.</MudText>
+    <MudButton Variant="Variant.Text" OnClick="@ClearFilters">Clear filters</MudButton>
+  </div>
+}
+else
+{
+    <MudDataGrid T="OverviewRow" Items="_rows" Dense="true" Hover="true" Elevation="0"
+                 Loading="_loading" Class="datasheet-grid overview-compact grid-padded">
+            <Columns>
+
+                <!-- COMPANY: Group + Name + URL (stacked) -->
+                <TemplateColumn Title="Company">
+                    <CellTemplate Context="ctx">
+                        <div class="id-col">
+                            <div class="id-row">
+                                <MudChip T="string" Dense="true" Size="Size.Small" Color="Color.Default">@ctx.Item.Group</MudChip>
+                            </div>
+                            <div class="id-row">
+                                <div class="wrap font-medium">@ctx.Item.Name</div>
+                            </div>
+                            <div class="id-row">
+                                <a href="@ctx.Item.Url" target="_blank" class="text-xs text-muted truncate">@ctx.Item.Url</a>
+                            </div>
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <!-- CATEGORY: chip + info tooltip (confidence + reason), bullets below -->
+                <TemplateColumn Title="Category">
+                    <CellTemplate Context="ctx">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1">
+                                <MudChip T="string" Dense="true" Size="Size.Small" Color="Color.Primary">@ctx.Item.Category</MudChip>
+                                <MudTooltip Text="@UiText.InfoTip(ctx.Item.CategoryReason, ctx.Item.CategoryConfidence)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="ml-1 text-muted" />
+                                </MudTooltip>
+
+                            </div>
+                            @if (ctx.Item.CategoryEvidence?.Count > 0)
+                            {
+                                <ul class="evidence">
+                                @foreach (var line in UiText.FlattenEvidence(ctx.Item.CategoryEvidence, 5))
+                                {
+                                    <li>@line</li>
+                                }
+                                </ul>
+                            }
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <!-- POSITIONING: title (muted), Positioning (emphasized), description; copy on hover -->
+                <TemplateColumn Title="Positioning">
+                    <CellTemplate Context="ctx">
+                        <div class="pos-line">
+                        <div class="text-xs text-muted wrap">@UiText.HtmlDecode(ctx.Item.SelfTitle)</div>
+
+                            <div class="positioning wrap">
+                                @ctx.Item.SelfPositioning
+                            <MudIconButton Class="copy"
+                                           Icon="@Icons.Material.Filled.ContentCopy"
+                                           Size="Size.Small"
+                                           OnClick="() => JS.CopyToClipboardAsync(ctx.Item.SelfPositioning ?? string.Empty, Snackbar)" />
+                            </div>
+
+                            <div class="text-xs text-muted wrap">@ctx.Item.SelfDescription</div>
+                        </div>
+
+                    </CellTemplate>
+                </TemplateColumn>
+
+                <!-- PERSONAS & SEGMENTS (merged) -->
+                <TemplateColumn Title="Personas &amp; Segments">
+                    <CellTemplate Context="ctx">
+                        <div class="chip-pairs">
+                            <div class="pair">
+                                <div class="label">Personas</div>
+                                <div class="chip-wrap">
+                                    @foreach (var p in ctx.Item.Personas.Take(6))
+                                    {
+                                        <MudChip T="string" Dense="true" Size="Size.Small">@p</MudChip>
+                                    }
+                                </div>
+                            </div>
+                            <div class="pair">
+                                <div class="label">Segments</div>
+                                <div class="chip-wrap">
+                                    @foreach (var s in ctx.Item.Segments.Take(6))
+                                    {
+                                        <MudChip T="string" Dense="true" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@s</MudChip>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
+
+            </Columns>
+    </MudDataGrid>
+}
+
+@code {
+    [Parameter] public Period Period { get; set; }
+    [Parameter] public int? GroupId { get; set; }
+    [Parameter] public int? CompanyId { get; set; }
+    [Parameter] public string? Search { get; set; }
+
+    private bool _hydrated;          // set after first OnAfterRenderAsync
+    private bool _resolved;          // set after we used cache or finished a fetch
+    private bool _loading = true;    // start true to avoid SSR empty-state flash
+    private List<OverviewRow> _rows = new();
+    private OverviewKey _lastKey;
+
+    [Parameter] public EventCallback ClearRequested { get; set; }
+
+    private Task ClearFilters()
+        => ClearRequested.InvokeAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hydrated = true;
+            await LoadAsync(force: true);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_hydrated)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync(bool force = false)
+    {
+        var key = OverviewKey.From(Period, GroupId, CompanyId, Search);
+
+        var hasCache = DS.TryGetOverview(key, out var cached, out var age);
+
+        // try cache
+        if (!force && hasCache && age <= DS.CacheFor)
+        {
+            _rows = cached;
+            _resolved = true;
+            _loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        // show stale if any, otherwise spinner
+        if (hasCache && cached.Count > 0)
+        {
+            _rows = cached;
+            _loading = true;
+            StateHasChanged();
+        }
+        else
+        {
+            _loading = true;
+            StateHasChanged();
+        }
+
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var fresh = await Api.GetOverviewAsync(Period, GroupId, CompanyId, Search, cts.Token);
+            _rows = fresh;
+            DS.PutOverview(key, fresh);
+        }
+        finally
+        {
+            _resolved = true;     // <- mark that we can now decide which empty state to show
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private bool HasAnyFilter => GroupId.HasValue || CompanyId.HasValue || !string.IsNullOrWhiteSpace(Search);
+    private bool ShowOnboarding => _hydrated && _resolved && !_loading && _rows.Count == 0 && !HasAnyFilter;
+
+    public async Task ExportCsv()
+    {
+        
+    }
+
+}

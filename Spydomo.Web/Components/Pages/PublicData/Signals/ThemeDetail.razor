@@ -1,0 +1,135 @@
+﻿@page "/signals/{CategorySlug}/{SignalTypeSlug}/{ThemeSlug}"
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.DTO.SignalLibrary
+@inject ISignalsLibraryService Svc
+
+<div class="container page signals-page">
+
+    @if (_vm is null)
+    {
+        <PageTitle>Signal theme</PageTitle>
+        <p class="muted">Loading…</p>
+    }
+    else
+    {
+        <PageTitle>@($"{HumanizeTheme(_vm.ThemeName)} · {_vm.SignalTypeName} · {_vm.CategoryName}")</PageTitle>
+
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
+            <a href="/signals">Signals</a> <span class="crumb-sep">›</span>
+            <a href="@($"/signals/{_vm.CategorySlug}")">@_vm.CategoryName</a> <span class="crumb-sep">›</span>
+            <a href="@($"/signals/{_vm.CategorySlug}/{_vm.SignalTypeSlug}")">@_vm.SignalTypeName</a> <span class="crumb-sep">›</span>
+            <span>@HumanizeTheme(_vm.ThemeName)</span>
+        </nav>
+
+        <div class="page-header sl-hero">
+            <h1>@HumanizeTheme(_vm.ThemeName)</h1>
+
+            <p class="lede">
+                A recurring theme inside <b>@_vm.SignalTypeName</b> signals for <b>@_vm.CategoryName</b>.
+                Explore real examples and the stored reasons behind this classification.
+            </p>
+
+            <div class="sl-statline subtle num">
+                <b>@_vm.CategoryName</b> · <b>@_vm.SignalTypeName</b> ·
+                @_vm.Last30Count signals | @FormatDelta(_vm.DeltaPct) in last 30 days
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_vm.ThemeDescription))
+            {
+                <p class="sl-desc sl-theme-desc">@_vm.ThemeDescription</p>
+            }
+
+            <div class="sl-hero-rule" aria-hidden="true"></div>
+
+            <div class="sl-intro">
+                <p>
+                    Themes group similar “reasons” across many signals so you can quickly spot what’s consistently
+                    driving launches, positioning shifts, conversion angles, or pain points in this space.
+                </p>
+
+                <ul class="sl-bullets">
+                    <li><b>Use it for GTM:</b> refine messaging, prioritize feature bets, or validate objections.</li>
+                    <li><b>Use it for competitive intel:</b> see which narratives and problems show up repeatedly.</li>
+                    <li><b>Evidence:</b> examples below include the stored reason (and optionally the source link).</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 class="sl-h2">Why this theme is showing up</h2>
+        <p class="subtle">Real examples with the stored reasons/explanations.</p>
+
+        @if (_vm.Examples.Count == 0)
+        {
+            <p class="muted">No examples found.</p>
+        }
+        else
+        {
+            <div class="grid-2 sl-examples">
+                @foreach (var ex in _vm.Examples)
+                {
+                    <article class="card sl-example">
+                        <div class="sl-example-meta">
+                            <b>@ex.CompanyName</b>
+                            @if (ex.PostedDate is not null)
+                            {
+                                <span class="subtle"> · @ex.PostedDate.Value.ToString("yyyy-MM-dd")</span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(ex.Gist))
+                        {
+                            <p><b>Gist:</b> @ex.Gist</p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(ex.SignalReason))
+                        {
+                            <p><b>Signal reason:</b> @ex.SignalReason</p>
+                        }
+
+                        @* Recommended to keep this if the URL is public *@
+                        @if (!string.IsNullOrWhiteSpace(ex.Url))
+                        {
+                            <p>
+                                <a class="sl-source" href="@ex.Url" rel="noopener noreferrer" target="_blank">
+                                    Source
+                                </a>
+                            </p>
+                        }
+                    </article>
+                }
+            </div>
+        }
+    }
+</div>
+
+
+
+
+@code {
+    [Parameter] public string CategorySlug { get; set; } = "";
+    [Parameter] public string SignalTypeSlug { get; set; } = "";
+    [Parameter] public string ThemeSlug { get; set; } = "";
+
+    private ThemeDetailVm? _vm;
+    
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _vm = await Svc.GetThemeDetailAsync(CategorySlug, SignalTypeSlug, ThemeSlug, DateTime.UtcNow, CancellationToken.None);
+    }
+
+    private static string HumanizeTheme(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "";
+        s = s.Replace("-", " ").Replace("_", " ").Trim();
+        return char.ToUpperInvariant(s[0]) + s.Substring(1);
+    }
+
+    private static string FormatDelta(decimal d)
+        => d switch
+        {
+            > 0 => $"▲ {(d * 100m):0}%",
+            < 0 => $"▼ {Math.Abs(d * 100m):0}%",
+            _ => "— 0%"
+        };
+}

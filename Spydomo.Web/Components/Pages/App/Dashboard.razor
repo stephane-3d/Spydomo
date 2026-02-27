@@ -1,0 +1,933 @@
+﻿@page "/app/dashboard/{groupSlug?}"
+@using Spydomo.Web.Classes
+@using Spydomo.Web.Components.Layout
+@using Spydomo.DTO
+@using Spydomo.Common.Enums
+@using System.Net.Http.Headers
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using Spydomo.Infrastructure.Clerk
+@using Spydomo.Infrastructure.Interfaces
+@using System.Net
+@using Microsoft.JSInterop
+@using Spydomo.Web.Components.Pages.Parts
+@using Spydomo.Web.Components.Pages.App.Dialogs
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject ClerkJsInterop ClerkJs
+@inject ICompanyGroupService GroupService
+@inject ICompanyService CompanyService
+@inject IDashboardService DashboardService
+@inject IClientContextService ClientContextService
+@inject ISnackbar Snackbar
+@inject DashboardState DashState
+
+@inject IJSRuntime JS
+@layout AdminLayout
+@rendermode InteractiveServer
+@inject IOptions<ClerkOptions> ClerkOptions
+@inject IDialogService DialogService
+
+<PageTitle>Market Pulse & Strategic Insights</PageTitle>
+<AdminPageHeader
+  Title="Market Pulse"
+  Kicker="Dashboard"
+  Icon="ph ph-pulse"
+  Subtext="Fresh, AI-curated signals from your tracked companies—updated as new activity is detected.">
+</AdminPageHeader>
+
+@if (!loading && !isGroupEmpty && !isCompanyEmpty)
+{
+    <div class="callout callout-info callout-filter" style="margin-bottom:15px">
+        <div class="@($"sticky-filter-bar " + (filterBarHasShadow ? "with-shadow" : ""))">
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" Class="filter-row" AlignItems="AlignItems.End">
+                <MudButton Variant="Variant.Outlined"
+                            Size="Size.Small"
+                            Class="filter-control filter-group"
+                            StartIcon="@Icons.Material.Filled.Folder"
+                            OnClick="PickGroupAsync">
+                    @GetGroupName(selectedGroupId)
+                </MudButton>
+
+
+                <MudSelect T="int" Label="Period" Value="selectedPeriod" ValueChanged="OnPeriodChanged">
+                    <MudSelectItem Value="1">Last 24 hours</MudSelectItem>
+                    <MudSelectItem Value="7">Last 7 days</MudSelectItem>
+                    <MudSelectItem Value="30">Last 30 days</MudSelectItem>
+                    <MudSelectItem Value="90">Last 90 days</MudSelectItem>
+                    <MudSelectItem Value="180">Last 180 days</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect T="PulseTier ?" Label="Priority" Value="selectedTier" ValueChanged="OnTierChanged">
+                    <MudSelectItem Value="@(null as PulseTier?)">All Tiers</MudSelectItem>
+                    <MudSelectItem Value="@( (PulseTier?)PulseTier.Tier1 )">Tier 1 (Highest priority)</MudSelectItem>
+                    <MudSelectItem Value="@( (PulseTier?)PulseTier.Tier2 )">Tier 2</MudSelectItem>
+                    <MudSelectItem Value="@( (PulseTier?)PulseTier.Tier3 )">Tier 3</MudSelectItem>
+                </MudSelect>
+
+
+                <MudSelect T="string" Label="Company" Value="selectedCompany" ValueChanged="OnCompanyChanged">
+                    <MudSelectItem Value="@((string)null)">All</MudSelectItem>
+                    @foreach (var company in signals.Select(s => s.CompanyName).Distinct())
+                    {
+                        <MudSelectItem Value="@company">@company</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="string" Label="Signal Type" Value="selectedSignalType" ValueChanged="OnSignalTypeChanged">
+                    <MudSelectItem Value="@((string)null)">All</MudSelectItem>
+                    @foreach (var type in signals.SelectMany(s => s.Types).Distinct())
+                    {
+                        <MudSelectItem Value="@type">@type</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Text"
+                           Size="Size.Small"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.RestartAlt"
+                           Disabled="@IsAtDefaultFilters"
+                           OnClick="ResetFiltersAsync">
+                    Reset
+                </MudButton>
+            </MudStack>
+        </div>
+    </div>
+}
+
+<MudPaper Class="pa-4 mt-0">
+    @if (loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Medium" Indeterminate="true" />
+    }
+    else if (signals.Any())
+    {
+        <MudGrid Spacing="3">
+        @foreach (var companyGroup in groupedSignals)
+        {
+            var signals = companyGroup.Value;
+
+            // pick the featured signal: Tier1 first, then newest
+            var featured = signals
+            .OrderBy(s => s.Tier == PulseTier.Tier1 ? 0 : s.Tier == PulseTier.Tier2 ? 1 : 2)
+            .ThenByDescending(s => s.CreatedOn)
+            .First();
+
+            var others = signals.Where(s => s != featured).ToList();
+
+            var hasWarmup = signals.Any(s =>
+            string.Equals(s.PeriodType, "warmup", StringComparison.OrdinalIgnoreCase));
+
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="2" Class="pa-4 pulse-card mb-4">
+
+                    <!-- top row (copy your good pattern) -->
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudAvatar Size="Size.Medium" Class="pulse-avatar">@companyGroup.Key[0]</MudAvatar>
+
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1" Class="fw-600">@companyGroup.Key</MudText>
+                                <MudText Typo="Typo.caption" Class="text-secondary">
+                                    @signals.Count signal@(signals.Count > 1 ? "s" : "")
+                                    @if (hasWarmup)
+                                    {
+                                        <span class="ms-2">• Instant snapshot</span>
+                                    }
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+
+                    <span class="@($"tier-pill {GetTierCssClass(featured.Tier)}")">
+                        @(featured.Tier switch
+                        {
+                            PulseTier.Tier1 => "Tier 1",
+                            PulseTier.Tier2 => "Tier 2",
+                            PulseTier.Tier3 => "Tier 3",
+                            _ => "No tier"
+                        })
+                        </span>
+                    </MudStack>
+
+                    <!-- signal type chips (from the featured signal) -->
+                    @if (featured.Types is not null && featured.Types.Any())
+                    {
+                        <MudStack Row="true" Spacing="1" Class="mt-3 flex-wrap">
+                            @foreach (var st in featured.Types.Take(2))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Class="signaltype-chip">
+                                    @FormatSignalType(st)
+                                </MudChip>
+                            }
+                        </MudStack>
+                    }
+
+                    <!-- featured brief (reuse your exact look) -->
+                    <div class="pulse-brief mt-3">
+                        <MudText Typo="Typo.overline" Class="pulse-brief-title">Featured signal</MudText>
+
+                        <MudText Typo="Typo.body1" Class="pulse-text" Style="white-space: pre-line;">
+                            @featured.Gist
+                        </MudText>
+
+                        @if (!string.IsNullOrWhiteSpace(featured.TierReason))
+                        {
+                            <MudText Typo="Typo.body2" Class="pulse-why">
+                                <b>Why it matters:</b> @featured.TierReason
+                            </MudText>
+                        }
+                    </div>
+
+                        @if ((featured.ThemeList?.Any() ?? false) || (featured.Tags?.Any() ?? false))
+                        {
+                            <MudGrid Class="mt-3">
+                                @if (featured.ThemeList?.Any() == true)
+                                {
+                                    <MudItem xs="12" sm="6">
+                                        <MudText Typo="Typo.overline" Class="kicker">What’s showing up lately</MudText>
+                                        <MudStack Row="true" Spacing="1" Class="meta-wrap">
+                                            @foreach (var th in featured.ThemeList.Take(2))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Class="meta-chip">
+                                                    @PrettyChip(th)
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudItem>
+                                }
+
+                                @if (featured.Tags?.Any() == true)
+                                {
+                                    <MudItem xs="12" sm="6">
+                                        <MudText Typo="Typo.overline" Class="kicker">Significant keywords</MudText>
+                                        <MudStack Row="true" Spacing="1" Class="meta-wrap">
+                                            @foreach (var t in featured.Tags.Take(3))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Class="meta-chip">
+                                                    @PrettyChip(t)
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        }
+
+                    <!-- meta row (compact, no emojis) -->
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-3">
+                        <MudText Typo="Typo.body2" Class="text-secondary">
+                            @if (!string.IsNullOrWhiteSpace(featured.Url))
+                            {
+                                <MudLink Href="@featured.Url" Target="_blank">@GetDomainFromUrl(featured.Url)</MudLink>
+                            }
+                        </MudText>
+
+                        <MudText Typo="Typo.body2" Class="text-secondary">
+                            @featured.CreatedOn.ToString("MMM dd, yyyy")
+                        </MudText>
+                    </MudStack>
+
+                    <!-- “More signals” collapsible -->
+                    @if (others.Any())
+                    {
+                        <MudExpansionPanels Class="mt-3">
+                            <MudExpansionPanel Text="@($"More signals ({others.Count})")">
+                                <MudStack Spacing="2">
+                                        @foreach (var s in others)
+                                        {
+                                            <MudPaper Elevation="0" Class="pulse-other">
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                                    <MudText Typo="Typo.body2" Class="fw-600" Style="white-space: pre-line;">
+                                                        @s.Gist
+                                                    </MudText>
+
+                                                    <span class="@($"mini-tier {GetTierCssClass(s.Tier)}")">
+                                                        @(s.Tier switch { PulseTier.Tier1 => "T1", PulseTier.Tier2 => "T2", PulseTier.Tier3 => "T3", _ => "" })
+                                                    </span>
+                                                </MudStack>
+
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-1">
+                                                    <MudText Typo="Typo.caption" Class="text-secondary">
+                                                        @if (!string.IsNullOrWhiteSpace(s.Url))
+                                                        {
+                                                            <MudLink Href="@s.Url" Target="_blank">@GetDomainFromUrl(s.Url)</MudLink>
+                                                        }
+                                                    </MudText>
+
+                                                    <MudText Typo="Typo.caption" Class="text-secondary">@s.CreatedOn.ToString("MMM dd, yyyy")</MudText>
+                                                </MudStack>
+
+                                                @* chips (types + themes) *@
+                                                @if ((s.Types?.Any() ?? false) || (s.ThemeList?.Any() ?? false))
+                                                {
+                                                    <MudStack Row="true" Spacing="1" Class="mt-2 flex-wrap">
+                                                        @foreach (var t in (s.Types ?? new()).Take(1))
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mini-chip">
+                                                                @PrettyChip(t)
+                                                            </MudChip>
+                                                        }
+                                                        @foreach (var th in (s.ThemeList ?? new()).Take(2))
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="mini-chip">
+                                                                @PrettyChip(th)
+                                                            </MudChip>
+                                                        }
+                                                    </MudStack>
+                                                }
+                                            </MudPaper>
+                                        }
+                                </MudStack>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+                    }
+                </MudPaper>
+            </MudItem>
+        }
+        </MudGrid>
+    }
+    else
+    {
+        <div class="text-center my-5">
+        @if (isGroupEmpty && isCompanyEmpty)
+        {
+            
+            <img src="/assets/app-default.png" alt="Onboarding robot" style="max-width: 300px;" class="mb-4" />
+            <MudText Typo="Typo.h5" Class="mb-2">Let’s get started!</MudText>
+            <MudText Typo="Typo.body1" Class="mb-4 text-muted">
+                To monitor your market, create a group and start tracking companies.
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" Class="me-2" OnClick="@(() => Navigation.NavigateTo("/app/groups"))">
+                Create a group
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Business" OnClick="@(() => Navigation.NavigateTo("/app/companies"))">
+                Add a company
+            </MudButton>
+            
+        }
+        else
+        {
+            @if (isGroupEmpty)
+            {
+                <img src="/assets/app-default.png" alt="Onboarding robot" style="max-width: 300px;" class="mb-4" />
+                <MudText Typo="Typo.h5" Class="mb-2">You need at least one group to get insights</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4 text-muted">
+                    A group is a collection of companies that will be monitor. 
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddCircle" Class="me-2" OnClick="@(() => Navigation.NavigateTo("/app/groups"))">
+                    Create a group
+                </MudButton>
+            }
+            else if (isCompanyEmpty)
+            {
+                <img src="/assets/app-default.png" alt="Onboarding robot" style="max-width: 300px;" class="mb-4" />
+                <MudText Typo="Typo.h5" Class="mb-2">You need at least one company to get insights</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4 text-muted">
+                    We recommend at least 5 companies to get a better competitive picture.
+                </MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Business" OnClick="@(() => Navigation.NavigateTo("/app/companies"))">
+                    Add a company
+                </MudButton>
+            }
+            else
+            {
+                <img src="/assets/app-default.png" alt="Onboarding robot" style="max-width: 300px;" class="mb-4" />
+                <MudText Typo="Typo.h5" Class="mb-2">Hold on, we're looking for insights!</MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4 text-muted">
+                        It's coming in a few seconds —
+                        <MudLink Href="#" OnClick="RefreshSignals" Class="fw-bold">click to refresh</MudLink>.
+                    </MudText>
+            }
+        }
+        </div>
+    }
+</MudPaper>
+
+@code {
+    private bool isReady = false;
+    private int clientId; 
+    private bool _refreshing;
+
+    [Parameter] public string? groupSlug { get; set; }
+
+    private List<CompanyGroupDto> groups = new();
+    private List<StrategicSignalDto> signals = new();
+    private List<TrackedCompanyDto> trackedCompanies = new();
+    public List<string> ThemeList { get; set; } = new();
+
+    private int? _selectedGroupId;
+    public int? selectedGroupId
+    {
+        get => _selectedGroupId;
+        set
+        {
+            if (_selectedGroupId != value)
+            {
+                _selectedGroupId = value;
+                _ = OnSelectedGroupChangedAsync(); // fire-and-forget refresh (cache-aware)
+            }
+        }
+    }
+
+    private async Task OnSelectedGroupChangedAsync()
+    {
+        await LoadSignalsAsync();
+        StateHasChanged();
+
+        WriteFiltersToUrl(replace: true);
+        await SaveFiltersToLocalStorageAsync();
+    }
+
+    private PulseTier? selectedTier = null;
+    private int _selectedPeriod = 30; // Default to 30 days
+
+    public int selectedPeriod
+    {
+        get => _selectedPeriod;
+        set
+        {
+            if (_selectedPeriod != value)
+            {
+                _selectedPeriod = value;
+                _ = OnSelectedPeriodChangedAsync(); // cache-aware refresh
+            }
+        }
+    }
+
+    private async Task OnSelectedPeriodChangedAsync()
+    {
+        await LoadSignalsAsync();
+        StateHasChanged();
+    }
+
+    private bool loading = true;
+    private string selectedCompany = null;
+    private string selectedSignalType = null;
+    private bool isGroupEmpty = false;
+    private bool isCompanyEmpty = false;
+
+    private bool _hasRendered = false;
+
+
+    // Remember the last loaded key to avoid redundant fetches
+    private SignalsKey? _lastKey;
+
+    private Dictionary<string, List<StrategicSignalDto>> groupedSignals =>
+        signals
+            .Where(s =>
+                (selectedTier == null || s.Tier == selectedTier) &&
+                (string.IsNullOrWhiteSpace(selectedCompany) || s.CompanyName == selectedCompany) &&
+                (string.IsNullOrWhiteSpace(selectedSignalType) || s.Types.Contains(selectedSignalType))
+            )
+            .OrderBy(s => s.Tier ?? PulseTier.Tier3)
+            .GroupBy(s => s.CompanyName)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+    private string GetSignalTypeClass(string type)
+        => $"signal-chip-{type}";
+
+    private bool filterBarHasShadow = false;
+
+    private const string FilterStorageKeyPrefix = "spydomo:pulseFilters:v1:";
+
+    private string FilterStorageKey => $"{FilterStorageKeyPrefix}{clientId}";
+
+    private sealed class PulseFilterState
+    {
+        public int? GroupId { get; set; }
+        public int PeriodDays { get; set; } = 30;
+        public PulseTier? Tier { get; set; }
+        public string? Company { get; set; }
+        public string? SignalType { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRendered)
+        {
+            _hasRendered = true;
+
+            try
+            {
+                clientId = await ClientContextService.GetCurrentClientIdAsync();
+
+                if (clientId == 0)
+                {
+                    Console.WriteLine("Client ID not available. Circuit might have disconnected.");
+                    return;
+                }
+
+                // 1) Load groups (you can optimize later, but this is fine)
+                groups = await GroupService.GetCompanyGroupsForClientAsync(clientId);
+
+                var defaultGroup = await GroupService.GetDefaultGroupForClientAsync(clientId);
+
+                if (defaultGroup == null)
+                {
+                    isGroupEmpty = true;
+                    loading = false;
+                }
+                else
+                {
+                    // If URL slug is provided and it's NOT the default, then load full list to resolve it
+                    if (!string.IsNullOrWhiteSpace(groupSlug))
+                    {
+                        var wanted = groupSlug.Trim();
+                        if (string.Equals(wanted, "default", StringComparison.OrdinalIgnoreCase))
+                            wanted = $"default-{clientId}";
+
+                        if (!string.Equals(wanted, defaultGroup.Slug, StringComparison.OrdinalIgnoreCase))
+                        {
+                            groups = await GroupService.GetCompanyGroupsForClientAsync(clientId);
+                        }
+                    }
+
+                    var initialGroupId = ResolveInitialGroupId();
+                    SetSelectedGroupIdSilently(initialGroupId);
+                }
+
+                trackedCompanies = await CompanyService.GetTrackedCompaniesForClientAsync(clientId);
+
+                if (groups == null || groups.Count == 0)
+                {
+                    isGroupEmpty = true;
+                    loading = false;
+                }
+
+                if (trackedCompanies == null || trackedCompanies.Count == 0)
+                {
+                    isCompanyEmpty = true;
+                    loading = false;
+                }
+
+                // ✅ Resolve a real group id (slug -> default -> fallback)
+                if (!isGroupEmpty)
+                {
+                    var initialGroupId = ResolveInitialGroupId();
+                    SetSelectedGroupIdSilently(initialGroupId);
+                }
+
+                // After groups are loaded and clientId is known:
+                var appliedFromUrl = TryApplyFiltersFromUrl();
+
+                if (!appliedFromUrl)
+                {
+                    // localStorage fallback
+                    await TryApplyFiltersFromLocalStorageAsync();
+                }
+
+                // If we still don't have a group selected, use your resolver
+                if (!_selectedGroupId.HasValue)
+                {
+                    var initialGroupId = ResolveInitialGroupId();
+                    SetSelectedGroupIdSilently(initialGroupId);
+                }
+
+                // Keep URL in sync (useful if we loaded from storage/defaults)
+                WriteFiltersToUrl(replace: true);
+
+                // ✅ Only load signals if we have a valid group + companies
+                if (!isGroupEmpty && !isCompanyEmpty && _selectedGroupId.HasValue)
+                {
+                    await LoadSignalsAsync();
+                }
+
+                isReady = true;
+                StateHasChanged();
+
+                await JS.InvokeVoidAsync("setupStickyShadow", DotNetObjectReference.Create(this));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading signals: " + ex.Message);
+            }
+        }
+    }
+
+    private async Task LoadSignalsAsync(bool force = false)
+    {
+        var key = new SignalsKey(clientId, selectedGroupId, selectedPeriod);
+
+        // Avoid redundant fetches if key hasn't changed and we already have items (unless forced)
+        if (!force && _lastKey.HasValue && _lastKey.Value.Equals(key) && signals.Count > 0)
+            return;
+
+        _lastKey = key;
+
+        // 1) Serve fresh cache immediately
+        if (DashState.TryGet(key, out var cached, out var age) && age <= DashState.Ttl)
+        {
+            signals = cached;
+            loading = false;
+            StateHasChanged();
+            return;
+        }
+
+        // 2) Stale-while-revalidate: show stale results (if any) and refresh in background
+        if (cached.Count > 0)
+        {
+            signals = cached;
+            loading = true;            // small spinner while we refresh
+            StateHasChanged();
+        }
+        else
+        {
+            loading = true;
+            StateHasChanged();
+        }
+
+        try
+        {
+            var fresh = await DashboardService.GetSignalsAsync(
+                new SignalQueryParams { GroupId = selectedGroupId, PeriodDays = selectedPeriod },
+                clientId);
+
+            signals = fresh;
+            DashState.Put(key, fresh);
+        }
+        catch (Exception ex)
+        {
+            Snackbar?.Add($"Failed to load signals: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnFilterChanged<T>(T _)
+    {
+        await LoadSignalsAsync();
+    }
+
+    private string GetDomainFromUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            return uri.Host.Replace("www.", "");
+        }
+        catch
+        {
+            return "Original Source";
+        }
+    }
+
+    private string GetTierCssClass(PulseTier? tier) => tier switch
+    {
+        PulseTier.Tier1 => "signal-tier-1",
+        PulseTier.Tier2 => "signal-tier-2",
+        PulseTier.Tier3 => "signal-tier-3",
+        _ => ""
+    };
+
+    [JSInvokable]
+    public void OnScrollChanged(double scrollY)
+    {
+        filterBarHasShadow = scrollY > 10;
+        StateHasChanged();
+    }
+
+    private string GetGroupName(int? id)
+    {
+        if (id == null)
+            return "Group";
+
+        var group = groups.FirstOrDefault(g => g.Id == id);
+        return group?.Name ?? "Group";
+    }
+
+    private string FormatSignalType(string type)
+        => PrettyChip(System.Text.RegularExpressions.Regex.Replace(type, "(\\B[A-Z])", " $1"));
+
+    private async Task RefreshSignals(MouseEventArgs _)
+    {
+        if (_refreshing) return;
+        _refreshing = true;
+        try
+        {
+            // Whatever you already do to reload:
+            // await LoadSignalsAsync();
+            // or: await Fetch();
+            await LoadSignalsAsync();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private int? ResolveInitialGroupId()
+    {
+        if (groups == null || groups.Count == 0)
+            return null;
+
+        // 1) If slug is provided, try to match it.
+        // Optional: allow /app/dashboard/default as alias for default-{clientId}
+        if (!string.IsNullOrWhiteSpace(groupSlug))
+        {
+            var wanted = groupSlug.Trim();
+
+            if (string.Equals(wanted, "default", StringComparison.OrdinalIgnoreCase))
+                wanted = $"default-{clientId}";
+
+            var match = groups.FirstOrDefault(g =>
+                !string.IsNullOrWhiteSpace(g.Slug) &&
+                string.Equals(g.Slug, wanted, StringComparison.OrdinalIgnoreCase));
+
+            if (match != null)
+                return match.Id;
+        }
+
+        // 2) Default group is deterministic
+        var defaultSlug = $"default-{clientId}";
+        var defaultGroup = groups.FirstOrDefault(g =>
+            !string.IsNullOrWhiteSpace(g.Slug) &&
+            string.Equals(g.Slug, defaultSlug, StringComparison.OrdinalIgnoreCase));
+
+        if (defaultGroup != null)
+            return defaultGroup.Id;
+
+        // 3) Fallback: oldest group
+        return groups.OrderBy(g => g.CreatedAt).First().Id;
+    }
+
+    private void SetSelectedGroupIdSilently(int? id)
+    {
+        _selectedGroupId = id;   // bypass setter to avoid initial fire-and-forget refresh
+    }
+
+    private async Task PickGroupAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["ClientId"] = clientId,
+            ["SelectedGroupId"] = selectedGroupId
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dlg = DialogService.Show<GroupPickerDialog>("Select a group", parameters, options);
+        var result = await dlg.Result;
+        if (result.Canceled) return;
+
+        if (result.Data is int id)
+            selectedGroupId = id;
+
+        StateHasChanged();
+    }
+
+    private static readonly HashSet<string> _keepUpper = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "AI", "ABM", "B2B", "B2C", "OKR", "KPI", "SEO", "SEM", "CRM", "SQL", "API", "SaaS", "PLG", "ARR", "MRR"
+    };
+
+    private static string PrettyChip(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "";
+
+        // separators -> spaces
+        s = s.Replace("_", " ").Replace("-", " ").Trim();
+        while (s.Contains("  ")) s = s.Replace("  ", " ");
+
+        var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            var p = parts[i];
+
+            // if token is in allowlist (or already ALL CAPS / contains digits), keep as uppercase
+            if (_keepUpper.Contains(p) || (p.Length <= 5 && p.Any(char.IsDigit)) || (p.Length <= 6 && p.All(char.IsUpper)))
+            {
+                parts[i] = p.ToUpperInvariant();
+                continue;
+            }
+
+            // normal title case
+            parts[i] = char.ToUpper(p[0]) + p.Substring(1).ToLower();
+        }
+
+        return string.Join(' ', parts);
+    }
+
+    private static string? GetQueryParam(Uri uri, string key)
+    {
+        var q = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        return q.Get(key);
+    }
+
+    private void WriteFiltersToUrl(bool replace = true)
+    {
+        // If we’re not ready yet, don’t touch the URL
+        if (clientId == 0) return;
+
+        var uri = new Uri(Navigation.Uri);
+        var q = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+        // Only include non-defaults to keep URL clean
+        if (selectedGroupId.HasValue) q.Set("g", selectedGroupId.Value.ToString());
+        else q.Remove("g");
+
+        if (selectedPeriod != 30) q.Set("p", selectedPeriod.ToString());
+        else q.Remove("p");
+
+        if (selectedTier.HasValue) q.Set("t", ((int)selectedTier.Value).ToString());
+        else q.Remove("t");
+
+        if (!string.IsNullOrWhiteSpace(selectedCompany)) q.Set("c", selectedCompany);
+        else q.Remove("c");
+
+        if (!string.IsNullOrWhiteSpace(selectedSignalType)) q.Set("s", selectedSignalType);
+        else q.Remove("s");
+
+        var newUri = uri.GetLeftPart(UriPartial.Path);
+        var qs = q.ToString();
+        if (!string.IsNullOrWhiteSpace(qs))
+            newUri += "?" + qs;
+
+        Navigation.NavigateTo(newUri, replace: replace);
+    }
+
+    private bool TryApplyFiltersFromUrl()
+    {
+        var uri = new Uri(Navigation.Uri);
+
+        var g = GetQueryParam(uri, "g");
+        var p = GetQueryParam(uri, "p");
+        var t = GetQueryParam(uri, "t");
+        var c = GetQueryParam(uri, "c");
+        var s = GetQueryParam(uri, "s");
+
+        // If none are present, URL has no filter state
+        if (g is null && p is null && t is null && c is null && s is null)
+            return false;
+
+        if (int.TryParse(g, out var gid)) SetSelectedGroupIdSilently(gid);
+        if (int.TryParse(p, out var per)) _selectedPeriod = per;
+
+        if (int.TryParse(t, out var tierInt))
+            selectedTier = (PulseTier)tierInt;
+        else if (t == null)
+            selectedTier = null;
+
+        selectedCompany = c;
+        selectedSignalType = s;
+
+        return true;
+    }
+
+    private async Task SaveFiltersToLocalStorageAsync()
+    {
+        if (clientId == 0) return;
+
+        var state = new PulseFilterState
+        {
+            GroupId = selectedGroupId,
+            PeriodDays = selectedPeriod,
+            Tier = selectedTier,
+            Company = selectedCompany,
+            SignalType = selectedSignalType
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(state);
+        await JS.InvokeVoidAsync("localStorage.setItem", FilterStorageKey, json);
+    }
+
+    private async Task<bool> TryApplyFiltersFromLocalStorageAsync()
+    {
+        if (clientId == 0) return false;
+
+        var json = await JS.InvokeAsync<string>("localStorage.getItem", FilterStorageKey);
+        if (string.IsNullOrWhiteSpace(json)) return false;
+
+        PulseFilterState? state;
+        try
+        {
+            state = System.Text.Json.JsonSerializer.Deserialize<PulseFilterState>(json);
+        }
+        catch
+        {
+            return false;
+        }
+
+        if (state is null) return false;
+
+        // validate group still exists for this client
+        if (state.GroupId.HasValue && groups.Any(g => g.Id == state.GroupId.Value))
+            SetSelectedGroupIdSilently(state.GroupId.Value);
+
+        _selectedPeriod = state.PeriodDays is > 0 ? state.PeriodDays : 30;
+        selectedTier = state.Tier;
+        selectedCompany = state.Company;
+        selectedSignalType = state.SignalType;
+
+        return true;
+    }
+
+    private async Task OnPeriodChanged(int v)
+    {
+        _selectedPeriod = v;
+        await OnAnyFilterChangedAsync(reload: true);
+    }
+
+    private async Task OnTierChanged(PulseTier? v)
+    {
+        selectedTier = v;
+        await OnAnyFilterChangedAsync(reload: false); // this is client-side filtering only
+    }
+
+    private async Task OnCompanyChanged(string v)
+    {
+        selectedCompany = v;
+        await OnAnyFilterChangedAsync(reload: false); // client-side filtering only
+    }
+
+    private async Task OnSignalTypeChanged(string v)
+    {
+        selectedSignalType = v;
+        await OnAnyFilterChangedAsync(reload: false); // client-side filtering only
+    }
+
+    private async Task OnAnyFilterChangedAsync(bool reload)
+    {
+        WriteFiltersToUrl(replace: true);
+        await SaveFiltersToLocalStorageAsync();
+
+        if (reload)
+            await LoadSignalsAsync();
+        else
+            StateHasChanged();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        // Keep selectedGroupId as-is (most users think “reset” = reset filters, not context)
+        selectedTier = null;
+        selectedCompany = null;
+        selectedSignalType = null;
+
+        // Reset period to your default
+        _selectedPeriod = 30;
+
+        // Sync state
+        WriteFiltersToUrl(replace: true);
+        await SaveFiltersToLocalStorageAsync();
+
+        // Period impacts data, so reload
+        await LoadSignalsAsync(force: true);
+    }
+
+    private bool IsAtDefaultFilters =>
+        selectedTier is null &&
+        string.IsNullOrWhiteSpace(selectedCompany) &&
+        string.IsNullOrWhiteSpace(selectedSignalType) &&
+        selectedPeriod == 30;
+}

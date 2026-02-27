@@ -1,0 +1,92 @@
+﻿@using Spydomo.DTO.Datasheet
+@rendermode InteractiveServer
+
+<MudCard Class="src-card" Elevation="0">
+    <MudCardContent>
+
+        <!-- Header -->
+        <div class="src-head">
+            <MudAvatar Variant="Variant.Outlined" Size="Size.Medium">@Initial(Company.Company)</MudAvatar>
+            <div class="min-w-0 grow ml-2">
+                <div class="truncate font-medium">@Company.Company</div>
+                <a href="https://@Company.Url" target="_blank" class="src-domain">@Domain(Company.Url)</a>
+            </div>
+            <MudChip T="string" Dense="true" Color="Color.Primary">@Company.Total</MudChip>
+        </div>
+
+        @*<!-- Mix strip (company vs user) -->
+    <div class="mix-strip">
+      <div class="mix-company" style="width:@CompanyShare()%"></div>
+      <div class="mix-user"    style="width:@(100 - CompanyShareInt())%"></div>
+    </div>*@
+
+        <!-- Two columns -->
+        <div class="src-cols">
+            <section>
+                <div class="col-title">
+                    <MudIcon Icon="@Icons.Material.Filled.Campaign" Size="Size.Small" />
+                    Company-generated
+                </div>
+
+                @if (Company.CompanyGenerated.Count == 0)
+                {
+                    <div class="muted">—</div>
+                }
+                else
+                {
+                    @foreach (var s in Company.CompanyGenerated)
+                    {
+                        <SourceRow Source="s"
+                                   BarMax="@(NormalizeGlobal ? GlobalMax : Company.Total)"
+                                   Kind="company" />
+                    }
+                }
+            </section>
+
+            <section>
+                <div class="col-title">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" />
+                    User-generated
+                </div>
+
+                @if (Company.UserGenerated.Count == 0)
+                {
+                    <div class="muted">—</div>
+                }
+                else
+                {
+                    @foreach (var s in Company.UserGenerated)
+                    {
+                        <SourceRow Source="s"
+                                   BarMax="@(NormalizeGlobal ? GlobalMax : Company.Total)"
+                                   Kind="user" />
+                    }
+                }
+            </section>
+        </div>
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public SourcesCompanyDto Company { get; set; } = default!;
+    [Parameter] public bool NormalizeGlobal { get; set; }
+    [Parameter] public int GlobalMax { get; set; } = 1;
+
+    private static string Initial(string? s)
+      => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpperInvariant();
+
+    private static string Domain(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        try { return new Uri(url).Host.Replace("www.", ""); } catch { return url; }
+    }
+
+    private int CompanyShareInt()
+    {
+        var comp = Company.CompanyGenerated.Sum(x => x.Count);
+        return Company.Total == 0 ? 0 : (int)Math.Round(100.0 * comp / Company.Total);
+    }
+
+    private string CompanyShare() => $"{CompanyShareInt()}";
+}

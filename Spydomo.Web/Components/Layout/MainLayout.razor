@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+
+
+
+<MudThemeProvider Theme="MyCustomTheme" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+@* Needed for snackbars *@
+<MudSnackbarProvider @rendermode="InteractiveServer" 
+                     MaxDisplayedSnackbars="4"
+                     PreventDuplicates="true"
+                     SnackbarVariant="Variant.Filled"
+                     AnchorOrigin="SnackbarAnchorOrigin.TopRight" />
+
+<NavMenu />
+<main>
+    @Body
+</main>
+<FooterNav />
+
+@code {
+    MudTheme MyCustomTheme = new MudTheme()
+    {
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }
+            },
+            H1 = new H1Typography { FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }, FontWeight = "800" },
+            H2 = new H2Typography { FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }, FontWeight = "800" }
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#008080",
+            PrimaryDarken = "#006666",
+            PrimaryLighten = "#009a9a"
+        }
+    };
+}

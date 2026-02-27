@@ -1,0 +1,36 @@
+﻿@* Generic content page shell: hero (optional), title row w/ optional icon, and free-form content *@
+<div class="page container">
+    @if (!string.IsNullOrWhiteSpace(HeroImageUrl))
+    {
+        <figure class="page-hero">
+            <img src="@HeroImageUrl" alt="@HeroAlt" />
+        </figure>
+    }
+
+    <header class="page-header">
+        <h1 class="title-row">
+            @Title
+            @if (!string.IsNullOrWhiteSpace(TitleIconUrl))
+            {
+                <img src="@TitleIconUrl" alt="" class="inline-icon" />
+            }
+        </h1>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <p class="lede muted no-wrap">@Subtitle</p>
+        }
+    </header>
+
+    <section class="page-body prose">
+        @ChildContent
+    </section>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public string? HeroImageUrl { get; set; }
+    [Parameter] public string? HeroAlt { get; set; } = "";
+    [Parameter] public string? TitleIconUrl { get; set; }  // e.g., maple leaf
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

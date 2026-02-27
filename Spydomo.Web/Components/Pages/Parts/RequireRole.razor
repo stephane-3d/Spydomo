@@ -1,0 +1,85 @@
+﻿@using Spydomo.Web.Classes
+@using Spydomo.DTO
+@inject UserState UserState
+@inject NavigationManager Navigation
+@inject IHostEnvironment Env
+
+
+@if (!_ready)
+{
+    <div class="text-muted small py-2">Checking permissions…</div>
+}
+else if (_allowed)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string? Roles { get; set; }                 // e.g. "admin,owner"
+    [Parameter] public IEnumerable<string>? RolesList { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string RedirectTo { get; set; } = "/app/unauthorized";
+
+    // If true => require @spydomo.com email. If null/false => ignore.
+    [Parameter] public bool? MustBeSpydomoEmployee { get; set; }
+
+    private bool _ready, _allowed;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_ready) return;
+
+        try
+        {
+            // JS interop is only safe here (after render)
+            var user = await UserState.GetOrLoadAsync();
+            if (user is null)
+                throw new Exception("User not loaded");
+
+            // ----- Roles check (optional) -----
+            var allowedRoles = RolesList ??
+                               (Roles ?? string.Empty)
+                               .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            var allowedRoleSet = new HashSet<string>(
+                allowedRoles.Select(r => r.ToLowerInvariant())
+            );
+
+            var userRole = (user.Role ?? string.Empty).Trim().ToLowerInvariant();
+            var roleOk = !allowedRoleSet.Any() || allowedRoleSet.Contains(userRole);
+
+            // ----- Employee email check (optional) -----
+            // Disable employee-only restriction in Development
+            var mustBeEmployee = (MustBeSpydomoEmployee == true) && !Env.IsDevelopment();
+
+
+            var email = (user.Email ?? string.Empty).Trim();
+            var employeeOk = !mustBeEmployee ||
+                             email.EndsWith("@spydomo.com", StringComparison.OrdinalIgnoreCase);
+
+            // ----- Final decision (AND) -----
+            _allowed = roleOk && employeeOk;
+            _ready = true;
+
+            if (!_allowed)
+            {
+                Navigation.NavigateTo(RedirectTo, forceLoad: true);
+            }
+            else
+            {
+                StateHasChanged();
+            }
+        }
+        catch (InvalidOperationException ioe) when (
+            ioe.Message.Contains("statically rendered", StringComparison.OrdinalIgnoreCase) ||
+            ioe.Message.Contains("JavaScript interop calls cannot be issued", StringComparison.OrdinalIgnoreCase))
+        {
+            // prerender pass; Blazor will call again after connect
+        }
+        catch
+        {
+            // If whoami failed (not logged in), send to login
+            Navigation.NavigateTo("/app/login", forceLoad: true);
+        }
+    }
+}

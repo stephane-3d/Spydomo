@@ -1,0 +1,147 @@
+﻿@page "/app/contact-us"
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject ClerkJsInterop ClerkJs
+@using Spydomo.DTO
+@using Spydomo.Web.Classes
+@using Spydomo.Infrastructure.Clerk
+@rendermode InteractiveServer
+@using System.Net.Http.Headers
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Components.Pages.Parts
+@layout AdminLayout
+
+<PageTitle>Support / Contact us</PageTitle>
+<RequireRole Roles="user, admin">
+    <AdminPageHeader
+      Title="Support & Contact"
+      Kicker="Help"
+      Icon="ph ph-question"
+      Subtext="Get help, send feedback, or reach us by email.">
+      <Actions>
+        @*<MudButton Href="/app/contact-us" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">
+          <i class="ph ph-envelope" style="margin-right:6px;"></i> Contact us
+        </MudButton>*@
+      </Actions>
+    </AdminPageHeader>
+
+
+    <MudPaper Class="pa-4 mt-4">
+        @if (!isReady)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Class="mt-4" />
+        }
+        else
+        {
+
+            <EditForm Model="contactModel" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                    <MudText Color="@Color.Error">
+                        <ValidationSummary />
+                    </MudText>
+
+                <MudGrid GutterSize="3">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="contactModel.Name" Label="Your Name" For="(() => contactModel.Name)" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="contactModel.Email" Label="Your Email" For="(() => contactModel.Email)" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="contactModel.Subject" Label="Subject" For="(() => contactModel.Subject)" FullWidth="true" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="contactModel.Message" Label="Message" For="(() => contactModel.Message)" FullWidth="true" Lines="10" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">Send Message</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        }
+    </MudPaper>
+</RequireRole>
+
+@code {
+    private ContactFormModel contactModel = new();
+    private UserDto? user;
+    private bool isReady = false;
+    private bool hasRendered = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !hasRendered)
+        {
+            hasRendered = true;
+
+            try
+            {
+                await LoadUserInfoAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Final fallback error: " + ex.Message);
+                Snackbar.Add("Unexpected error loading user info", Severity.Error);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUserInfoAsync()
+    {
+        var token = await ClerkJs.GetSessionTokenAsync();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/users/whoami");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await Http.SendAsync(request);
+        if (response.IsSuccessStatusCode)
+        {
+            user = await response.Content.ReadFromJsonAsync<UserDto>();
+            if (user is not null)
+            {
+                contactModel.Name = string.IsNullOrEmpty(user.Name) ? user.Email : user.Name;
+                contactModel.Email = user.Email;
+                contactModel.UserId = user.Id;
+                contactModel.ClientId = user.ClientId;
+            }
+        }
+        else
+        {
+            Navigation.NavigateTo("/app/login", true);
+        }
+
+        isReady = true;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/contact", contactModel);
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Message sent successfully!", Severity.Success);
+                contactModel.Subject = string.Empty;
+                contactModel.Message = string.Empty;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Failed to send message: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error sending message", Severity.Error);
+            Console.WriteLine(ex);
+        }
+    }
+
+}

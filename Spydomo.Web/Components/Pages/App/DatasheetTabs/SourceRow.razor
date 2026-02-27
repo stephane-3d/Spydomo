@@ -1,0 +1,34 @@
+﻿@using Spydomo.DTO.Datasheet
+@rendermode InteractiveServer
+
+<!-- SourceRow.razor -->
+<div class="src-row" data-kind="@Kind">
+    <div class="src-left">
+        @if (!string.IsNullOrWhiteSpace(Source.LinkUrl))
+        {
+            <a class="src-name" href="@Source.LinkUrl" target="_blank">@Source.Name</a>
+        }
+        else
+        {
+
+            <span class="src-name">@Source.Name</span>
+        }
+    </div>
+
+    <div class="src-bar-wrap">
+        <div class="src-bar" style="width:@WidthPct%"></div>
+    </div>
+
+    <div class="src-val">@Source.Count</div>
+</div>
+
+@code {
+    [Parameter] public SourceCountDto Source { get; set; } = default!;
+    [Parameter] public int BarMax { get; set; }      // changes when you flip the switch
+    [Parameter] public string Kind { get; set; } = "company";
+
+    // Recomputed every render based on current params
+    private int WidthPct =>
+        BarMax <= 0 ? 0 : Math.Max(2, (int)Math.Round(Source.Count * 100.0 / (double)BarMax));
+}
+

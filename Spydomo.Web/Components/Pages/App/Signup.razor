@@ -1,0 +1,41 @@
+﻿@page "/app/signup-old"
+@using Spydomo.Web.Classes
+@using Microsoft.Extensions.Options
+@using Spydomo.Infrastructure.Clerk
+@inject ClerkJsInterop ClerkJsInterop
+@inject IOptions<ClerkOptions> ClerkOptions
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Spydomo - Signup</PageTitle>
+
+<div class="center-25">
+  <div id="clerk-root-signup"></div>
+</div>
+
+@code {
+    private bool _mounted;
+
+    private async void OnLocationChanging(object? sender, LocationChangingContext e)
+    {
+        try { await JS.InvokeVoidAsync("clerkInterop.unmount", "clerk-root-signup"); }
+        catch { }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _mounted) return;
+
+        await ClerkJsInterop.MountSignUpAsync(
+            elementId: "clerk-root-signup",
+            afterSignUpUrl: ClerkOptions.Value.SignUpRedirectUrl,
+            afterSignInUrl: ClerkOptions.Value.SignInRedirectUrl
+        );
+
+        _mounted = true;
+        // Do NOT call StateHasChanged here
+    }
+
+    // Prevent any subsequent renders from nuking Clerk's DOM
+    protected override bool ShouldRender() => !_mounted;
+}

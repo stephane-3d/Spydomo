@@ -1,0 +1,302 @@
+﻿@page "/app/groups"
+@inject ICompanyGroupService CompanyGroupService
+@inject IClientContextService ClientContextService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject GroupState GroupState
+@inject IMarketPulseService MarketPulseService
+
+@using Spydomo.DTO
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.Infrastructure
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Components.Pages.Parts
+@using Spydomo.Web.Components.Pages.App.Dialogs
+@using Spydomo.Utilities
+@using Microsoft.Extensions.Logging;
+
+@layout AdminLayout
+@rendermode InteractiveServer
+
+<PageTitle>Manage Company Groups</PageTitle>
+
+<RequireRole Roles="admin,superadmin">
+
+    
+    <AdminPageHeader Title="Manage Groups"
+                     Kicker="Groups"
+                     Icon="ph ph-folders"
+                     Subtext="Organize companies by competitor sets, segments, or projects." />
+
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Create New Group</MudText>
+
+            <MudTextField @bind-Value="newGroup.Name" Label="Group Name" Required="true" Placeholder="e.g. Main Competitors" />
+            <MudTextField @bind-Value="newGroup.Description" Label="Description" Lines="2" Placeholder="e.g. Our most direct competitors" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudText Typo="Typo.body1">
+                    Focus for this group (optional)
+                </MudText>
+
+                <MudTooltip Text="What should Spydomo pay extra attention to for this set of companies? A short note helps keep future insights aligned with what matters most to you.">
+                    <MudIconButton Icon="@Icons.Material.Filled.HelpOutline"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Style="padding: 0; margin-bottom: 4px;" />
+                </MudTooltip>
+                
+            </MudStack>
+            
+            <MudTextField @bind-Value="newGroup.Context"
+                          Placeholder="e.g. Pricing objections and reasons we lose deals to these tools."
+                          Lines="2"
+                          Class="mt-1" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" style="width:250px;" 
+                       OnClick="CreateGroupAsync"
+                        Disabled="@(_isCreatingGroup)">Create group</MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @* if (_isBuildingArena)
+    {
+        <MudAlert Severity="Severity.Info"
+                  Dense="true"
+                  Variant="Variant.Outlined"
+                  Class="mb-2 mt-2">
+            <MudProgressCircular Class="me-2"
+                                 Size="Size.Small"
+                                 Indeterminate="true" />
+            Building competitive view for <b>@_buildingGroupName</b>…
+        </MudAlert>
+    }
+    else if (_arenaBuildCompleted && !string.IsNullOrWhiteSpace(_lastBuiltGroupName))
+    {
+        Snackbar.Add(
+        $"Done! Competitive view built for '{_lastBuiltGroupName}'", Severity.Success);
+    } *@
+
+
+    <MudPaper Class="pa-4 mt-6">
+        <MudText Typo="Typo.h6">Your Groups</MudText>
+
+        @if (groups is null)
+        {
+            <MudProgressCircular Indeterminate="true" Class="mt-4" />
+        }
+        else if (!groups.Any())
+        {
+            <MudText Class="mt-4">No groups yet. Create one to get started.</MudText>
+        }
+        else
+        {
+            <MudTable Items="groups" Hover="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Description</MudTh>
+                    <MudTh>Context</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Name" Immediate="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Description" Immediate="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudTextField @bind-Value="context.Context" Immediate="true" />
+                    </MudTd>
+                    <MudTd>
+                        <MudStack Row="true" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Group"
+                                           Color="Color.Default"
+                                           OnClick="@(() => OpenManageCompaniesDialog(context))"
+                                           Title="Manage companies" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.Save" Color="Color.Primary" OnClick="@(() => SaveGroupAsync(context))" title="Save" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="@(() => DeleteGroupAsync(context))" title="Delete" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</RequireRole>
+
+@code {
+    private List<CompanyGroupDto> groups;
+    private CompanyGroupDto newGroup = new(); 
+    private bool _initialized = false;
+    private bool _isCreatingGroup;
+    /*private bool _isBuildingArena;
+    private int? _buildingGroupId;
+    private string? _buildingGroupName;
+    private bool _arenaBuildCompleted;
+    private string? _lastBuiltGroupName;*/
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            _initialized = true;
+
+            try
+            {
+                var clientId = await ClientContextService.GetCurrentClientIdAsync();
+                groups = await CompanyGroupService.GetCompanyGroupsForClientAsync(clientId);
+                StateHasChanged(); // Trigger UI update
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Failed to load groups: " + ex.Message, Severity.Error);
+            }
+        }
+    }
+
+
+    private async Task CreateGroupAsync()
+    {
+        try
+        {
+            _isCreatingGroup = true;
+            StateHasChanged();
+
+            var clientId = await ClientContextService.GetCurrentClientIdAsync();
+            newGroup.ClientId = clientId;
+
+            var created = await CompanyGroupService.CreateCompanyGroupAsync(newGroup);
+            groups.Insert(0, created);
+            newGroup = new();
+
+            Snackbar.Add("Group created successfully.", Severity.Success);
+
+            await GroupState.RefreshAsync();
+            // laod companies dialog
+            await OpenManageCompaniesDialog(created);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to create group: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isCreatingGroup = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private async Task SaveGroupAsync(CompanyGroupDto group)
+    {
+        try
+        {
+            await CompanyGroupService.UpdateCompanyGroupAsync(group);
+            Snackbar.Add("Group updated", Severity.Success);
+            await GroupState.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to update group: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteGroupAsync(CompanyGroupDto group)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"Are you sure you want to delete the group \"{group.Name}\"?" },
+            { "ButtonText", "Yes, delete it" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Confirm Deletion", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                await CompanyGroupService.DeleteCompanyGroupAsync(group.Id, group.ClientId);
+                groups.Remove(group);
+                Snackbar.Add("Group deleted", Severity.Warning);
+                StateHasChanged();
+                await GroupState.RefreshAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error deleting group: " + ex.Message);
+                Snackbar.Add($"Failed to delete group:{ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenManageCompaniesDialog(CompanyGroupDto group)
+    {
+        var parameters = new DialogParameters
+        {
+            { "GroupId", group.Id },
+            { "GroupName", group.Name }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ManageGroupCompaniesDialog>(
+            null,
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result.Canceled)
+            return;
+
+        Snackbar.Add($"Companies updated for group '{group.Name}'", Severity.Success);
+
+        /*
+        _isBuildingArena = true;
+        _arenaBuildCompleted = false;
+        _buildingGroupId = group.Id;
+        _buildingGroupName = group.Name;
+        StateHasChanged();
+
+        try
+        {
+            await MarketPulseService.GetPulseAsync(group.Slug, forceRefresh: true);
+
+            _arenaBuildCompleted = true;
+            _lastBuiltGroupName = group.Name;
+        }
+        catch (Exception ex)
+        {
+            _arenaBuildCompleted = false;
+
+            Console.WriteLine("Error building market pulse snapshot: " + ex.Message);
+            
+            Snackbar.Add(
+                "Companies were updated, but the competitive view failed to build. " +
+                "It will be retried the next time you open the group page.",
+                Severity.Warning);
+        }
+        finally
+        {
+            _isBuildingArena = false;
+            _buildingGroupId = null;
+            _buildingGroupName = null;
+            StateHasChanged();
+        }*/
+
+        var clientId = await ClientContextService.GetCurrentClientIdAsync();
+        groups = await CompanyGroupService.GetCompanyGroupsForClientAsync(clientId);
+        StateHasChanged();
+    }
+}
+

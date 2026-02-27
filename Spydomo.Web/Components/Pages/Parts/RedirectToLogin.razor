@@ -1,0 +1,11 @@
+﻿@inject NavigationManager Navigation
+
+<p>Redirecting to login...</p>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            Navigation.NavigateTo("/app/login", forceLoad: true);
+    }
+}

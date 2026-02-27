@@ -1,0 +1,116 @@
+﻿@page "/examples"
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.DTO
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ICompanyGroupService Groups
+
+<PageTitle>Live examples</PageTitle>
+
+<section class="mk-hero">
+    <div class="container">
+        <div class="mk-hero-inner">
+            <div>
+                <h1 class="mk-title">Live market pulse</h1>
+                <p class="mk-lead">
+                    Explore real competitive-intelligence briefs built from public sources —
+                    launches, positioning shifts, and market chatter — curated into one highlight per company.
+                </p>
+
+                <div class="mk-actions">
+                    <a class="btn primary" href="/app/signup">Start free (14 days)</a>
+                    <a class="btn" href="/how-it-works">How it works</a>
+                </div>
+
+                <p class="mk-note">
+                    These are public previews. In-app: full signal stream, grouped themes, and briefs for your shortlist.
+                </p>
+            </div>
+
+            <div class="mk-hero-media" aria-hidden="true">
+                <img src="/assets/examples.png" alt="" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-section">
+    <div class="container">
+        <h2 class="section-title">Browse market pulses</h2>
+        <p class="muted" style="max-width:75ch">
+            Click a few to see how Spydomo turns scattered signals into fast, readable briefs.
+        </p>
+
+        @if (_loading)
+        {
+            <div class="card" style="padding:18px">Loading examples…</div>
+        }
+        else if (_items.Count == 0)
+        {
+            <div class="card" style="padding:18px">
+                No public examples found.
+            </div>
+        }
+        else
+        {
+            <div class="grid-3 mt-3">
+                @foreach (var g in _items)
+                {
+                    <a class="card example-card" href="@GetPulseUrl(g.Slug)">
+                        <div class="example-title">@g.Name</div>
+
+                        @if (!string.IsNullOrWhiteSpace(g.Description))
+                        {
+                            <div class="muted example-meta">@g.Description</div>
+                        }
+                        else
+                        {
+                            <div class="muted example-meta">
+                                Curated competitive signals — one highlight per company.
+                            </div>
+                        }
+
+                        <div class="example-cta">
+                            View market pulse →
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</section>
+
+<section class="mk-cta">
+    <div class="container">
+        <div class="card mk-cta-card">
+            <h2 style="margin-top:0">Want this for your market?</h2>
+            <p class="muted" style="max-width:70ch">
+                Build your shortlist. Get competitive-intel briefs and grouped themes as signals emerge.
+                Move faster with less noise.
+            </p>
+            <div class="mk-actions">
+                <a class="btn primary" href="/app/signup">Start your 14-day free trial</a>
+                <a class="btn" href="/pricing">See pricing</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private bool _loading = true;
+    private List<CompanyGroupDto> _items = new();
+
+    private static string GetPulseUrl(string slug) => $"/pulse/{slug}"; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        _items = await Groups.GetPublicCompanyGroupsAsync(clientId: 2);
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("scrollToTop");
+    }
+}

@@ -1,0 +1,90 @@
+﻿@page "/signals/{CategorySlug}"
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.DTO.SignalLibrary
+@inject ISignalsLibraryService Svc
+
+<PageTitle>@Title</PageTitle>
+
+<div class="container page signals-page">
+
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <a href="/signals">Signals</a> <span class="crumb-sep">›</span> <span>@Title</span>
+    </nav>
+
+    <div class="page-header sl-hero">
+        <h1>@Title</h1>
+        <p class="lede">Signal types detected in the last 30 days for this category.</p>
+        <div class="sl-hero-rule" aria-hidden="true"></div>
+
+        <!-- NEW: category intro (SEO/AEO friendly) -->
+        <div class="sl-intro">
+            <p>
+                This page groups the <b>go-to-market signals</b> Spydomo detected for companies in the
+                <b>@Title</b> category over the last <b>30 days</b>.
+                A “signal” is a recognizable pattern in public content that suggests something meaningful changed —
+                what the company shipped, how they position, how they price, or what customers struggle with.
+            </p>
+
+            <ul class="sl-bullets">
+                <li><b>Why this exists:</b> to quickly spot what’s changing in this market and what’s working.</li>
+                <li><b>How to use it:</b> pick a signal type to see the recurring <b>themes</b> behind it, then open a theme to read real examples and stored reasons.</li>
+                <li><b>What the numbers mean:</b> counts and deltas reflect activity in the last 30 days (not total history).</li>
+            </ul>
+
+            <p class="subtle">
+                Each signal type and theme has its own URL, so this library is easy to crawl and reference.
+            </p>
+        </div>
+    </div>
+
+    @if (_rows is null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else if (_rows.Count == 0)
+    {
+        <p class="muted">No signals found.</p>
+    }
+    else
+    {
+        <ul class="sl-list">
+            @foreach (var s in _rows)
+            {
+                <li class="sl-list-item">
+                    <a class="sl-list-link" href="@($"/signals/{CategorySlug}/{s.SignalTypeSlug}")">
+                        <div class="sl-list-title">@s.SignalTypeName</div>
+                        <div class="subtle num">
+                            @s.Last30Count signals | @FormatDelta(s.DeltaPct)
+                            @if (!string.IsNullOrWhiteSpace(s.Description))
+                            {
+                                <span> — @s.Description</span>
+                            }
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+
+@code {
+    [Parameter] public string CategorySlug { get; set; } = "";
+    private string Title = "Category";
+    private List<SignalTypeRow>? _rows;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var res = await Svc.GetCategoryAsync(CategorySlug, DateTime.UtcNow, CancellationToken.None);
+        Title = string.IsNullOrWhiteSpace(res.CategoryName) ? "Category" : res.CategoryName;
+        _rows = res.SignalTypes;
+    }
+
+    private static string FormatDelta(decimal d)
+        => d switch
+        {
+            > 0 => $"▲ {(d * 100m):0}%",
+            < 0 => $"▼ {Math.Abs(d * 100m):0}%",
+            _ => "— 0%"
+        };
+}

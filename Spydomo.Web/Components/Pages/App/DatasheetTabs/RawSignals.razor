@@ -1,0 +1,406 @@
+﻿@using Spydomo.Common.Enums
+@using Spydomo.DTO.Datasheet
+@using Spydomo.Infrastructure
+@inject DatasheetService Api
+@rendermode InteractiveServer
+
+<MudStack Spacing="2">
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        All captured signals for the selected period. Expand any row to see gist points, themes, tags, and raw link.
+    </MudAlert>
+
+    <!-- Toolbar -->
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudTextField T="string"
+                      @bind-Value="_search"
+                      Placeholder="Search gist or URL..."
+                      Dense="true"
+                      Immediate="true"
+                      DebounceInterval="350"
+                      OnDebouncedValueChanged="OnSearchChanged"
+                      Clearable="true"
+                      OnClearButtonClick="OnSearchClear"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="w-80" />
+
+        <div class="grow"></div>
+
+        <MudSelect T="TagSentimentFilter" @bind-Value="Filter" Dense="true" Variant="Variant.Outlined" Class="w-40">
+            <MudSelectItem Value="TagSentimentFilter.All">All sentiments</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Positive">Positive</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Neutral">Neutral</MudSelectItem>
+            <MudSelectItem Value="TagSentimentFilter.Negative">Negative</MudSelectItem>
+        </MudSelect>
+
+        <MudSelect T="OriginFilter" @bind-Value="Origin" Dense="true" Variant="Variant.Outlined" Class="w-48">
+            <MudSelectItem Value="OriginFilter.All">All origins</MudSelectItem>
+            <MudSelectItem Value="OriginFilter.Company">Company-generated</MudSelectItem>
+            <MudSelectItem Value="OriginFilter.User">User-generated</MudSelectItem>
+        </MudSelect>
+    </MudStack>
+
+    <MudTable T="RawSignalRow"
+          Class="rs-table"
+          ServerData="LoadServerData"
+          @ref="_table"
+          Dense="true"
+          Hover="true"
+          FixedHeader="true"
+          FixedFooter="true"
+          Height="620px"
+          Breakpoint="Breakpoint.Sm"
+          Elevation="0"
+          RowClick="OnRowClick"
+          RowClassFunc="RowClass"
+              @bind-RowsPerPage="_rowsPerPage"
+          RowsPerPageOptions="new int[] { 10, 25, 50, 100 }">
+
+      <HeaderContent>
+        <MudTh Style="width:36px"></MudTh>
+
+            <MudTh>
+                <MudTableSortLabel T="RawSignalRow" SortLabel="date" InitialDirection="SortDirection.Descending">
+                    Date
+                </MudTableSortLabel>
+            </MudTh>
+
+            <MudTh>
+                <MudTableSortLabel T="RawSignalRow" SortLabel="company">
+                    Company
+                </MudTableSortLabel>
+            </MudTh>
+
+            <MudTh>
+                <div class="th-help">
+                    <MudTableSortLabel T="RawSignalRow" SortLabel="source">
+                        Source
+                    </MudTableSortLabel>
+                    <MudTooltip Text="Where the post came from (Blog, X/Twitter, YouTube, G2…).">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+            <!-- Origin: not sortable -->
+            <MudTh>
+                <div class="th-help">
+                    <span>Origin</span>
+                    <MudTooltip Text="Who originated the content: Company-generated or User-generated.">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+            <MudTh>
+                <div class="th-help">
+                    <MudTableSortLabel T="RawSignalRow" SortLabel="eng">
+                        Eng.
+                    </MudTableSortLabel>
+                    <MudTooltip Text="Engagement score from the raw source (likes/comments/etc.).">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+            <!-- Sent.: not sortable -->
+            <MudTh>
+                <div class="th-help">
+                    <span>Sent.</span>
+                    <MudTooltip Text="Sentiment of the summarized item: Positive, Neutral, or Negative.">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+            <MudTh>
+                <div class="th-help">
+                    <MudTableSortLabel T="RawSignalRow" SortLabel="score">
+                        Signal
+                    </MudTableSortLabel>
+                    <MudTooltip Text="Internal score estimating importance/relevance.">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+            <!-- Gist: not sortable -->
+            <MudTh>
+                <div class="th-help">
+                    <span>Gist</span>
+                    <MudTooltip Text="Short summary. Expand the row to see points, themes, and tags.">
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Size="Size.Small" Class="th-q" />
+                    </MudTooltip>
+                </div>
+            </MudTh>
+
+      </HeaderContent>  
+
+        <RowTemplate>
+            <MudTd>
+                <MudIconButton Size="Size.Small" Variant="Variant.Text"
+                               Icon="@ExpandIcon(context)" AriaLabel="Toggle details"
+                               OnClick="@(() => ToggleRow(context))" />
+            </MudTd>
+
+            <MudTd DataLabel="Date">@context.Date.ToLocalTime().ToString("yyyy-MM-dd")</MudTd>
+            <MudTd DataLabel="Company">@context.Company</MudTd>
+
+            <MudTd DataLabel="Source" Class="col-source">
+                <span class="source-cell">
+                    <a href="@BuildUrl(context.Url)" target="_blank" rel="noopener" class="link">@context.Source</a>
+                    <a href="@BuildUrl(context.Url)" target="_blank" rel="noopener" class="link-icon" aria-label="Open source">
+                        <MudIcon Icon="@Icons.Material.Filled.Launch" Size="Size.Small" />
+                    </a>
+                </span>
+            </MudTd>
+
+            <MudTd DataLabel="Origin">
+                <span class="pill @(context.Origin == "company" ? "pill-company" : "pill-user")">
+                    @(context.Origin == "company" ? "Company" : "User")
+                </span>
+            </MudTd>
+            <MudTd DataLabel="Eng.">@context.EngagementScore</MudTd>
+
+            <MudTd DataLabel="Sent.">
+                @{
+                    var s = (context.Sentiment ?? "").ToLowerInvariant();
+                    var sClass = s == "pos" ? "pill-pos" : s == "neg" ? "pill-neg" : "pill-neu";
+                    var sText = s == "pos" ? "Pos" : s == "neg" ? "Neg" : "Neu";
+                }
+                <span class="pill pill-sent @sClass">@sText</span>
+            </MudTd>
+
+            <MudTd DataLabel="Signal">@context.SignalScore</MudTd>
+
+            <!-- Gist: up to 2 lines (wrap, don't truncate to 1) -->
+            <MudTd DataLabel="Gist">
+                @if (!string.IsNullOrWhiteSpace(context.Gist))
+                {
+                    <span class="clamp-2 wrap-gist">@context.Gist</span>
+                }
+                else
+                {
+                    var cutoff = DateTime.UtcNow.AddDays(-7);
+
+                    if (context.Date < cutoff)
+                    {
+                        <span class="muted-note">Not summarized (older than 7 days)</span>
+                    }
+                    else
+                    {
+                        <span class="muted-note">Processing soon</span>
+                    }
+                }
+            </MudTd>
+        </RowTemplate>
+
+        <ChildRowContent>
+            <MudTr Class="rs-child-row">
+                <MudTd ColSpan="9" Class="p-0 rs-child-cell">
+                    <MudCollapse Expanded="@IsExpanded(context)">
+                        <div class="child-box">
+                            <div class="child">
+                                <div class="child-col">
+                                    <div class="child-title">
+                                        <MudIcon Icon="@Icons.Material.Filled.Summarize" Size="Size.Small" /> In brief
+                                    </div>
+                                    @if (context.GistPoints.Count == 0)
+                                    {
+                                        <div class="muted">—</div>
+                                    }
+                                    else
+                                    {
+
+                                        <ul class="pts">@foreach (var p in context.GistPoints)
+                                        {
+                                            <li>@p</li>
+                                        }
+                                        </ul>
+                                                                        
+                                    }
+                                </div>
+
+                                <div class="child-col">
+                                    <div class="child-title">
+                                        <MudIcon Icon="@Icons.Material.Filled.Topic" Size="Size.Small" /> Themes
+                                    </div>
+                                    @if (context.Themes.Count == 0)
+                                    {
+                                        <div class="muted">—</div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var th in context.Themes)
+                                        {
+                                            <div class="kv">
+                                                <span class="k">@th.Label</span>
+                                                <span class="v clamp-2" title="@th.Reason">@th.Reason</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+
+                                <div class="child-col">
+                                    <div class="child-title">
+                                        <MudIcon Icon="@Icons.Material.Filled.Sell" Size="Size.Small" /> Tags
+                                    </div>
+                                    @if (context.Tags.Count == 0)
+                                    {
+                                        <div class="muted">—</div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var tg in context.Tags)
+                                        {
+                                            <div class="kv">
+                                                <span class="k">@tg.Label</span>
+                                                <span class="v clamp-2" title="@tg.Reason">@tg.Reason</span>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </MudCollapse>
+                </MudTd>
+            </MudTr>
+        </ChildRowContent>
+
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+
+</MudStack>
+
+@code {
+    [Parameter] public Period Period { get; set; }
+    [Parameter] public int? GroupId { get; set; }
+    [Parameter] public int? CompanyId { get; set; }
+    private int _rowsPerPage = 10;
+
+    private string _search = "";
+    private MudTable<RawSignalRow>? _table;
+    private bool _hydrated;
+
+    private readonly HashSet<string> _expanded = new();
+
+    private string _paramsKey = "";
+
+    private string MakeParamsKey()
+        => $"{(int)Period}|{GroupId}|{CompanyId}";
+
+    private TagSentimentFilter _filter = TagSentimentFilter.All;
+    private OriginFilter _origin = OriginFilter.All;
+
+    private TagSentimentFilter Filter { get => _filter; set { if (_filter == value) return; _filter = value; if (_hydrated) _table?.ReloadServerData(); } }
+    private OriginFilter Origin { get => _origin; set { if (_origin == value) return; _origin = value; if (_hydrated) _table?.ReloadServerData(); } }
+
+    private string ExpandIcon(RawSignalRow r)
+        => IsExpanded(r) ? Icons.Material.Filled.ExpandLess
+                         : Icons.Material.Filled.ExpandMore;
+
+    private string RowClass(RawSignalRow r, int index)
+    {
+        var sent = r.Sentiment?.ToLowerInvariant();
+        var sClass = sent == "pos" ? "sent-pos" : sent == "neg" ? "sent-neg" : sent == "neu" ? "sent-neu" : "";
+        return $"{(IsExpanded(r) ? "rs-open " : "")}{sClass}";
+    }
+
+    protected override void OnParametersSet()
+    {
+        var key = MakeParamsKey();
+
+        // first run before hydration: just remember
+        if (!_hydrated) { _paramsKey = key; return; }
+
+        if (key == _paramsKey) return;     // nothing changed
+        _paramsKey = key;
+
+        _expanded.Clear();                 // collapse old rows
+        _table?.ReloadServerData();        // fetch with new period/group/company
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _hydrated = true;
+            _paramsKey = MakeParamsKey();  // initialize key
+            await InvokeAsync(() => _table?.ReloadServerData());
+
+        }
+    }
+
+    private async Task<TableData<RawSignalRow>> LoadServerData(TableState state, CancellationToken token)
+    {
+        var sent = FilterToQuery(_filter);
+        var orig = OriginToQuery(_origin);
+        var sortBy = state.SortLabel ?? "date";
+        var desc = state.SortDirection != SortDirection.Ascending;
+
+        var page = state.Page;
+        var pageSize = state.PageSize == 0 ? 25 : state.PageSize;
+
+        var res = await Api.GetRawSignalsAsync(
+          Period, GroupId, CompanyId, _search, sent, orig,
+          sourceTypeIds: null, page, pageSize, sortBy, desc, token);
+
+        return new TableData<RawSignalRow> { TotalItems = res.Total, Items = res.Items };
+    }
+
+    // expand/collapse helpers
+    private string RowKey(RawSignalRow r) => $"{r.CompanyId}|{r.Date.ToUniversalTime().Ticks}|{r.SourceTypeId}|{r.Url}";
+    private bool IsExpanded(RawSignalRow r) => _expanded.Contains(RowKey(r));
+    private void ToggleRow(RawSignalRow r)
+    {
+        var k = RowKey(r);
+        if (!_expanded.Add(k)) _expanded.Remove(k);
+        StateHasChanged();
+    }
+    private void OnRowClick(TableRowClickEventArgs<RawSignalRow> e) => ToggleRow(e.Item);
+
+    // utils
+    private static string BuildUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (Uri.TryCreate(url, UriKind.Absolute, out var abs)) return abs.ToString();
+        var u = url.Trim(); if (!u.StartsWith("http", StringComparison.OrdinalIgnoreCase)) u = "https://" + u;
+        return u;
+    }
+    private static string ShortHost(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        try { return new Uri(BuildUrl(url)).Host.Replace("www.", ""); } catch { return url; }
+    }
+
+    private string FilterToQuery(TagSentimentFilter f) => f switch
+    {
+        TagSentimentFilter.Positive => "pos",
+        TagSentimentFilter.Neutral => "neu",
+        TagSentimentFilter.Negative => "neg",
+        _ => "all"
+    };
+    private static string OriginToQuery(OriginFilter o) => o switch
+    {
+        OriginFilter.Company => "company",
+        OriginFilter.User => "user",
+        _ => "all"
+    };
+
+    private async Task OnSearchChanged(string _)
+    {
+        if (_hydrated) 
+            _table?.ReloadServerData();
+
+    }
+
+    private void OnSearchClear(MouseEventArgs _)
+    {
+        _search = "";
+        _table?.ReloadServerData();
+    }
+
+}

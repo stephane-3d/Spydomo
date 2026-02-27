@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Clerk.Net.AspNetCore.Security" Version="1.0.0" />
+    <PackageReference Include="Clerk.Net.DependencyInjection" Version="1.15.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="MudBlazor" Version="8.15.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spydomo.Common\Spydomo.Common.csproj" />
+    <ProjectReference Include="..\Spydomo.DTO\Spydomo.DTO.csproj" />
+    <ProjectReference Include="..\Spydomo.Infrastructure\Spydomo.Infrastructure.csproj" />
+    <ProjectReference Include="..\Spydomo.Models\Spydomo.Models.csproj" />
+    <ProjectReference Include="..\Spydomo.Utilities\Spydomo.Utilities.csproj" />
+  </ItemGroup>
+
+</Project>

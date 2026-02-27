@@ -1,0 +1,62 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // ── Blazor Web App ──────────────────────────────────────────────────────
+        {
+            "name": "Spydomo.Web",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Solution",
+            "program": "${workspaceFolder}/Spydomo.Web/bin/Debug/net10.0/Spydomo.Web.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Spydomo.Web",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7091;http://localhost:5288"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            }
+        },
+        // ── Hangfire Worker ──────────────────────────────────────────────────────
+        {
+            "name": "Spydomo.Worker",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Solution",
+            "program": "${workspaceFolder}/Spydomo.Worker/bin/Debug/net10.0/Spydomo.Worker.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Spydomo.Worker",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7092;http://localhost:5289"
+            }
+        },
+        // ── Node Scraper Server ──────────────────────────────────────────────────
+        // BRIGHTDATA_BROWSER_WS is read from your system environment so you never
+        // have to paste the secret into this file.
+        {
+            "name": "Node Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/Spydomo.Node/server.js",
+            "cwd": "${workspaceFolder}/Spydomo.Node",
+            "env": {
+                "PORT": "3000",
+                "BRIGHTDATA_BROWSER_WS": "${env:BRIGHTDATA_BROWSER_WS}"
+            },
+            "console": "integratedTerminal"
+        }
+    ],
+    // ── Start everything at once ─────────────────────────────────────────────────
+    "compounds": [
+        {
+            "name": "All Services",
+            "configurations": ["Spydomo.Web", "Spydomo.Worker", "Node Server"],
+            "stopAll": true
+        }
+    ]
+}

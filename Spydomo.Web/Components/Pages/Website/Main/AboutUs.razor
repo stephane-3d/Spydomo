@@ -1,0 +1,116 @@
+﻿@page "/about"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>About Us — Spydomo</PageTitle>
+
+<ContentPage Title="Hello from Québec City, Canada"
+             Subtitle="We are bootstrapped, independent, profitable and proudly building for the long game."
+             HeroImageUrl="/assets/about-team-2.png"
+             HeroAlt="Our team"
+             TitleIconUrl="/assets/images/maple-leaf-red.svg">
+
+    <h2>Why We Built Spydomo</h2>
+    <p>
+        We’re a small creative team from Québec City, Canada - entrepreneurs, marketers, and product folks who’ve all
+        felt the same pain: trying to keep up with competitors, customer trends, and shifting market dynamics…
+        without turning it into a second job.
+    </p>
+    <p>
+        We were tired of juggling review sites, community threads, social feeds, newsletters, and launch posts just to
+        answer simple questions like: <em>“What’s really going on in our market?”</em> or <em>
+            “What are users actually
+            complaining about?”
+        </em>
+    </p>
+    <p>
+        Spydomo was born to fix that. First for our own use, then for other teams who think like us: fast-moving B2B
+        teams who want clarity and competitive awareness without the grunt work.
+    </p>
+
+    <h2>How We Work</h2>
+
+    <h3>Calm competitive awareness, not panic dashboards</h3>
+    <p>
+        We don’t believe in firehoses of alerts or dashboards that create more anxiety than answers. Spydomo is built
+        as a calm radar, not a flashing siren.
+    </p>
+    <p>
+        Instead of showing you everything, we curate what matters:
+        launches, patterns in reviews, emerging complaints, shifts in positioning. The goal is a short, readable
+        briefing you can scan in a few minutes and then get back to building.
+    </p>
+
+    <h3>With builders, not bureaucracy</h3>
+    <p>
+        Spydomo is not designed for corporate “competitive intelligence” departments and 40-page slide decks.
+        It’s for people who actually ship:
+    </p>
+    <ul>
+        <li><i class="ph ph-target" aria-hidden="true"></i> Founders, product leaders, and B2B SaaS teams who need a live feel for their market</li>
+        <li><i class="ph ph-trend-up" aria-hidden="true"></i> Growth &amp; content agencies juggling multiple clients and verticals</li>
+        <li><i class="ph ph-magnifying-glass" aria-hidden="true"></i> Anyone who wants market awareness without hours of manual research</li>
+    </ul>
+    <p>
+        That’s why our product, pricing, and UX stay simple. No opaque enterprise contracts, no “talk to sales” just to
+        get started—just track the companies you care about and let the system work for you.
+    </p>
+
+    <h3>The customer’s voice over vanity metrics</h3>
+    <p>
+        Follower counts and launch announcements can be entertaining, but they’re not where the real insight lives.
+        We put the spotlight on what users actually say.
+    </p>
+    <p>
+        Spydomo pulls in reviews, discussions, and mentions, then normalizes and groups them into clear themes—
+        so instead of 27 slightly different complaints, you see one clear pattern like
+        <em>“slow onboarding”</em> or <em>“support is hard to reach”</em>. We care less about who shouts the loudest,
+        and more about what it feels like to use the product.
+    </p>
+
+    <h3>Playing the long game with history and context</h3>
+    <p>
+        Market awareness isn’t a one-off research project; it’s a story unfolding over time. As you use Spydomo, you
+        build a history of themes, sentiment, and signals around your competitive landscape.
+    </p>
+    <p>
+        We help you see not just what happened this week, but how it fits into the bigger narrative:
+        recurring pain points, improving areas, new threats, and shifting positioning. Over time, Spydomo becomes the
+        place where your team remembers what happened, why it mattered, and how you responded.
+    </p>
+
+    <h2>What We Do (In Plain Terms)</h2>
+    <p>
+        Spydomo tracks the companies and markets you care about, collects relevant content (reviews, discussions,
+        company updates), and turns it into a curated feed of signals and stats. You get:
+    </p>
+    <ul>
+        <li>A clear view of what customers praise, complain about, and ask for</li>
+        <li>Signals when competitors launch, shift positioning, or hit recurring issues</li>
+        <li>History and context so you can see trends instead of isolated anecdotes</li>
+    </ul>
+
+    <h2>Our Vision</h2>
+    <p>
+        Our goal is to become your team’s quiet competitive edge—a living pulse of your market that keeps you ahead,
+        inspired, and confidently strategic, without adding noise or busywork.
+    </p>
+
+    <div class="cta-row">
+        <a href="mailto:info@spydomo.com" class="btn primary">
+            <i class="ph ph-envelope btn-icon" aria-hidden="true"></i>
+            Don’t be shy — email us!
+        </a>
+    </div>
+</ContentPage>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

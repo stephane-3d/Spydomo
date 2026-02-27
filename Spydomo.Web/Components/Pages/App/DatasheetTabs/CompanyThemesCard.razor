@@ -1,0 +1,97 @@
+﻿@using Spydomo.DTO.Datasheet
+
+<MudCard Class="src-card" Elevation="0">
+    <MudCardContent>
+
+        <!-- Header (same as Sources/Keywords) -->
+        <div class="src-head">
+            <MudAvatar Variant="Variant.Outlined" Size="Size.Medium">@Initial(Company.Company)</MudAvatar>
+            <div class="min-w-0 grow ml-2">
+                <div class="truncate font-medium">@Company.Company</div>
+                @if (!string.IsNullOrWhiteSpace(Company.Url))
+                {
+                    <a href="@BuildUrl(Company.Url)" target="_blank" class="src-domain">@Domain(Company.Url)</a>
+                }
+            </div>
+            @* Optional total count chip *@
+            @* <MudChip T="string" Dense="true" Color="Color.Primary">@Company.Themes.Sum(t => t.Count)</MudChip> *@
+        </div>
+
+        @if (Company.Themes.Count == 0)
+        {
+            <div class="muted">—</div>
+        }
+        else
+        {
+            <div class="thm-list">
+                @foreach (var t in Company.Themes.OrderByDescending(x => x.Count).ThenBy(x => x.Label))
+                {
+                    <div class="src-row">
+                        <div class="src-left">
+                            <div class="thm-name">@t.Label</div>
+
+                            @if (!string.IsNullOrWhiteSpace(t.Reason))
+                            {
+                                <MudTooltip Text="@t.Reason" Placement="Placement.Bottom" MaxWidth="max-content">
+                                    <div class="thm-reason text-muted">@t.Reason</div>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <div class="thm-reason text-muted">—</div>
+                            }
+                        </div>
+
+                        <div class="src-bar-wrap">
+                            <div class="src-bar" style="width:@(WidthPct(t.Count, _barMax))%"></div>
+                        </div>
+
+                        <div class="src-val">@t.Count</div>
+                    </div>
+                }
+            </div>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public ThemesCompanyDto Company { get; set; } = default!;
+
+    private int _barMax;
+
+    protected override void OnParametersSet()
+    {
+        _barMax = Math.Max(1, (Company?.Themes?.Count ?? 0) > 0
+            ? Company.Themes.Max(t => t.Count)
+            : 1);
+    }
+
+    private static int WidthPct(int value, int max)
+        => max <= 0 ? 0 : (int)Math.Round(100.0 * value / max);
+
+    private static string Initial(string? s)
+        => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpperInvariant();
+
+    private static string BuildUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (Uri.TryCreate(url, UriKind.Absolute, out var abs)) return abs.ToString();
+        var cleaned = url.Trim();
+        if (!cleaned.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            cleaned = "https://" + cleaned;
+        return cleaned;
+    }
+
+    private static string Domain(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        try
+        {
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                url = "https://" + url.Trim();
+            return new Uri(url).Host.Replace("www.", "");
+        }
+        catch { return ""; }
+    }
+}

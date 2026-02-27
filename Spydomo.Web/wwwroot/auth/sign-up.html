@@ -1,0 +1,76 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign up • Spydomo</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="/css/auth.css" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- <script async crossorigin="anonymous"
+        data-clerk-publishable-key="pk_live_Y2xlcmsuc3B5ZG9tby5jb20k"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"></script>-->
+    <script>
+        (function () {
+            var host = location.hostname.toLowerCase();
+
+            // Decide what counts as "dev"
+            var isDev =
+                host === "localhost" ||
+                host === "127.0.0.1" ||
+                host.endsWith(".localhost");
+
+            var publishableKey = isDev
+                ? "pk_test_cmVmaW5lZC1yZWRiaXJkLTU3LmNsZXJrLmFjY291bnRzLmRldiQ"
+                : "pk_live_Y2xlcmsuc3B5ZG9tby5jb20k";
+
+            var s = document.createElement("script");
+            s.async = true;
+            s.crossOrigin = "anonymous";
+            s.src = "https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js";
+            s.setAttribute("data-clerk-publishable-key", publishableKey);
+
+            document.head.appendChild(s);
+        })();
+    </script>
+</head>
+<body>
+    <div class="auth-wrap">
+        <div class="auth-card">
+            <div class="auth-grid">
+                <!-- LEFT: Tagline + Robot -->
+                <section class="hero">
+                    <h1 class="tagline">Competitive intelligence. Curated for you.</h1>
+                    <img src="/assets/login.png" alt="Robot picking the best signals (cherries) from the tree"
+                         width="480" height="360" loading="eager">
+                </section>
+
+
+                <!-- RIGHT: Clerk Sign-up -->
+                <section class="clerk-host">
+                    <div id="sign-up"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', async () => {
+            await window.Clerk.load();
+            window.Clerk.mountSignUp(document.getElementById('sign-up'), {
+                afterSignUpUrl: "/app/dashboard",
+                afterSignInUrl: "/app/dashboard",
+                appearance: {
+                    variables: {
+                        colorPrimary: "#2b4740",
+                        fontFamily: `ui-sans-serif, system-ui, -apple-system, "Public Sans", Roboto, "Helvetica Neue", Arial, "Noto Sans"`
+                        ,
+                    }
+                    // If Clerk's own header feels redundant, you can hide it:
+                    // , elements: { header: { display: "none" } }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

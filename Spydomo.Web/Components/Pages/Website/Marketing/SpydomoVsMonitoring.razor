@@ -1,0 +1,193 @@
+﻿@page "/spydomo-vs-monitoring-alerts"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Why Spydomo vs Monitoring & Alerts</PageTitle>
+
+<section class="vs-wrap">
+
+    <!-- HERO -->
+    <header class="vs-hero">
+        <div class="vs-hero-inner">
+            <div>
+                <h1>Why Spydomo vs Monitoring &amp; Alerts</h1>
+                <p class="vs-sub">
+                    Alerts are great at telling you <strong>something happened</strong>.
+                    Spydomo is built to tell you <strong>what matters</strong> — with context, trends, and traceable sources,
+                    packaged into a weekly workflow your team can actually use.
+                </p>
+
+                <div class="vs-hero-actions">
+                    <a class="vs-btn primary" href="/pricing">Try it free</a>
+                    <a class="vs-btn" href="/how-it-works">How it works</a>
+                </div>
+
+                <p class="vs-note">
+                    Monitoring tools detect changes. Spydomo turns change into signal: scoring, grouping, trends, and “why it matters.”
+                </p>
+            </div>
+
+            <div class="vs-hero-card">
+                <div class="vs-hero-card-title">Common “alerts stacks”</div>
+                <ul class="vs-hero-list">
+                    <li>Website change alerts, RSS, newsletters</li>
+                    <li>Google Alerts, keyword monitors</li>
+                    <li>Slack/email alerts + a spreadsheet/Notion doc</li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- COMPARISON -->
+    <section class="vs-compare" aria-label="Comparison table">
+        <div class="vs-table">
+
+            <div class="vs-head">
+                <div class="vs-cell feature"></div>
+                <div class="vs-cell colhead">
+                    <div class="vs-coltitle">Monitoring &amp; Alerts</div>
+                    <div class="vs-coldesc">Detect changes (often noisy)</div>
+                </div>
+                <div class="vs-cell colhead sp">
+                    <div class="vs-coltitle">Spydomo</div>
+                    <div class="vs-coldesc">Curate signals (with context)</div>
+                </div>
+            </div>
+
+            @Row("Primary output",
+            gpt: "Notifications: “a page changed” or “a keyword appeared.”",
+                        sp: "Curated feed: changes, signals, and what they imply for you.",
+                        gptKind: "check", spKind: "check")
+
+            @Row("So what?",
+                        gpt: "Interpretation is manual (you read, compare, and decide).",
+                        sp: "Adds context, scoring, and “why it matters” to reduce decision fatigue.",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("Signal-to-noise",
+                        gpt: "Easy to get flooded with alerts and stop paying attention.",
+                        sp: "Designed to filter noise and surface only meaningful shifts.",
+                        gptKind: "minus", spKind: "check")
+
+            @Row("Across competitors",
+                        gpt: "You set up alerts per site/source and manage them yourself.",
+                        sp: "Unified view across competitors and categories (by group, by theme, by trend).",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("History & trends",
+                        gpt: "You build your own baseline and compare across weeks.",
+                        sp: "Built-in history and trends so you can see momentum over time.",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("Traceability",
+                        gpt: "Links exist, but insights aren’t structured or connected.",
+                        sp: "Every insight remains traceable to its original source inside the workflow.",
+                        gptKind: "mixed", spKind: "check")
+
+            @Row("Workflow output",
+                        gpt: "A pile of alerts you still need to organize.",
+                        sp: "A consistent weekly review format your CEO/PM/Marketing team can rely on.",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("Total cost of ownership",
+                        gpt: "Cheap tools, expensive time (setup, tuning, triage, cleanup).",
+                        sp: "Maintained system with consistent output and minimal maintenance overhead.",
+                        gptKind: "mixed", spKind: "check")
+
+            @Row("Best use case",
+                        gpt: "Single-site monitoring or very specific alerts.",
+                        sp: "Ongoing competitive awareness for teams who need direction, not notifications.",
+                        gptKind: "check", spKind: "check")
+
+        </div>
+    </section>
+
+    <!-- CLOSE -->
+    <footer class="vs-footer">
+        <div class="vs-footer-inner">
+            <h2>In short</h2>
+            <p class="vs-footer-lead">
+                <strong>Alerts tell you what changed.</strong>
+                <strong>Spydomo tells you what matters.</strong>
+            </p>
+            <p class="vs-footer-sub">
+                If you’re a 10–100 person SaaS and you want a reliable weekly cadence of competitive signals — without drowning in alerts —
+                Spydomo is built for that.
+            </p>
+            <div class="vs-hero-actions">
+                <a class="vs-btn primary" href="/pricing">Try it free</a>
+                <a class="vs-btn" href="/use-cases">See use cases</a>
+            </div>
+        </div>
+    </footer>
+
+</section>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+
+    RenderFragment Row(string feature, string gpt, string sp, string gptKind, string spKind) => __builder =>
+    {
+        <div class="vs-row">
+            <div class="vs-cell feature">
+                <div class="vs-feature">@feature</div>
+            </div>
+
+            <div class="vs-cell">
+                <div class="vs-pill @("k-" + gptKind)">
+                    @Icon(gptKind)
+                    <span>@Label(gptKind)</span>
+                </div>
+                <div class="vs-text">@gpt</div>
+            </div>
+
+            <div class="vs-cell sp">
+                <div class="vs-pill @("k-" + spKind)">
+                    @Icon(spKind)
+                    <span>@Label(spKind)</span>
+                </div>
+                <div class="vs-text">@sp</div>
+            </div>
+        </div>
+        ;
+    };
+
+    RenderFragment Icon(string kind) => __builder =>
+    {
+        if (kind == "check")
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M7.7 13.3 4.6 10.2a1 1 0 0 0-1.4 1.4l3.8 3.8a1 1 0 0 0 1.4 0l8.4-8.4a1 1 0 1 0-1.4-1.4l-7.7 7.7z" />
+            </svg>
+            ;
+        }
+        else if (kind == "manual")
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10a6 6 0 1 1 6 6H6.5L4 18.5V16a6 6 0 0 1 0-6zm6-4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
+            </svg>
+            ;
+        }
+        else
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5 10a1 1 0 0 1 1-1h8a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z" />
+            </svg>
+            ;
+        }
+    };
+
+    string Label(string kind) => kind switch
+    {
+        "check" => "Included",
+        "manual" => "Manual",
+        "mixed" => "Varies",
+        _ => "Not included"
+    };
+}

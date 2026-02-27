@@ -1,0 +1,59 @@
+﻿@* Shared/SubprocessorsTable.razor *@
+
+<table class="table mt-4 subprocessors-table">
+    <thead>
+        <tr>
+            <th>Subprocessor</th>
+            <th>Purpose</th>
+            <th>Data categories</th>
+            <th>Location / region</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Microsoft Azure</td>
+            <td>Hosting infrastructure, databases, backups</td>
+            <td>Account data, usage data, logs, content processed by Spydomo</td>
+            <td>Data centers in regions selected by Spydomo (e.g., Canada, US, EU)</td>
+        </tr>
+        <tr>
+            <td>Stripe</td>
+            <td>Payment processing and subscription billing</td>
+            <td>Billing contact details, limited payment details, subscription metadata</td>
+            <td>EU/US (see Stripe&apos;s data protection documentation)</td>
+        </tr>
+        <tr>
+            <td>Clerk</td>
+            <td>Authentication and user identity management</td>
+            <td>Login identifiers, email addresses, authentication logs</td>
+            <td>EU/US (see Clerk&apos;s data protection documentation)</td>
+        </tr>
+        <tr>
+            <td>Postmark</td>
+            <td>Transactional email delivery</td>
+            <td>Email addresses, message content for notifications and account-related emails</td>
+            <td>US (with appropriate safeguards such as SCCs, per Postmark documentation)</td>
+        </tr>
+        <tr>
+            <td>Plausible Analytics</td>
+            <td>Privacy-focused website analytics</td>
+            <td>Aggregated usage data, approximate location (no cookies, no personal profiles)</td>
+            <td>EU (servers hosted in the EU)</td>
+        </tr>
+        <tr>
+            <td>OpenAI</td>
+            <td>AI-powered text analysis and summarization within Spydomo</td>
+            <td>Text content submitted for analysis, which may include public reviews or user feedback</td>
+            <td>Data centers operated by OpenAI (see OpenAI&apos;s data protection documentation)</td>
+        </tr>
+        <tr>
+            <td>Bright Data</td>
+            <td>Data collection infrastructure for publicly available web content</td>
+            <td>
+                Public web content related to companies and tools; may incidentally include usernames
+                or display names contained in that content
+            </td>
+            <td>Various, depending on Bright Data infrastructure (see Bright Data&apos;s documentation)</td>
+        </tr>
+    </tbody>
+</table>

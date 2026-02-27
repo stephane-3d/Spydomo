@@ -1,0 +1,140 @@
+﻿@using Spydomo.DTO
+@using Spydomo.Web.Classes
+@using System.Net.Http.Headers
+@using Spydomo.Infrastructure.Clerk
+@rendermode InteractiveServer
+@inject UserState UserState
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<nav class="pc-sidebar">
+  <div class="navbar-wrapper">
+    <div class="m-header">
+      <NavLink href="/app/dashboard" class="b-brand text-primary" ActiveClass="">
+        <img src="../assets/logo-transparent.png" class="img-fluid" style="width:150px;height:auto;" />
+        <span class="badge bg-brand-color-2 rounded-pill ms-2 theme-version">v1.0</span>
+      </NavLink>
+    </div>
+
+    <div class="navbar-content">
+      <ul class="pc-navbar">
+
+        <!-- Always visible -->
+        <li class="pc-item">
+          <NavLink href="/app/dashboard" class="pc-link" ActiveClass="active" Match="NavLinkMatch.Prefix">
+            <span class="pc-micon"><i class="ph-duotone ph-pulse"></i></span>
+            <span class="pc-mtext">Market Pulse</span>
+          </NavLink>
+        </li>
+
+        <!-- Always visible -->
+        <li class="pc-item">
+          <NavLink href="/app/datasheet" class="pc-link" ActiveClass="active" Match="NavLinkMatch.Prefix">
+            <span class="pc-micon"><i class="ph-duotone ph-table"></i></span>
+            <span class="pc-mtext">Master Datasheet</span>
+          </NavLink>
+        </li>
+
+        @if (isReady && !_isBasicUser)
+        {
+              <li class="pc-item">
+                <NavLink href="/app/companies" class="pc-link" ActiveClass="active" Match="NavLinkMatch.Prefix">
+                  <span class="pc-micon"><i class="ph-duotone ph-buildings"></i></span>
+                  <span class="pc-mtext">Add / Manage Companies</span>
+                </NavLink>
+              </li>
+
+              <li class="pc-item">
+                <NavLink href="/app/groups" class="pc-link" ActiveClass="active" Match="NavLinkMatch.Prefix">
+                  <span class="pc-micon"><i class="ph-duotone ph-folders"></i></span>
+                  <span class="pc-mtext">Add / Manage Groups</span>
+                </NavLink>
+              </li>
+        }
+
+        <li class="pc-item pc-caption">
+          <label>My account</label>
+        </li>
+
+        <li class="pc-item">
+            <NavLink href="/app/manage-profile" class="pc-link" ActiveClass="active" Match="NavLinkMatch.All">
+                <span class="pc-micon"><i class="ph-duotone ph-user-circle"></i></span>
+                <span class="pc-mtext">My Profile / Password</span>
+            </NavLink>
+        </li>
+
+        @if (isReady && !_isBasicUser)
+        {
+              <li class="pc-item">
+                <NavLink href="/app/manage-account" class="pc-link" ActiveClass="active" Match="NavLinkMatch.All">
+                  <span class="pc-micon"><i class="ph-duotone ph-identification-card"></i></span>
+                  <span class="pc-mtext">Client Information</span>
+                </NavLink>
+              </li>
+
+              <li class="pc-item">
+                <NavLink href="/app/manage-users" class="pc-link" ActiveClass="active" Match="NavLinkMatch.Prefix">
+                  <span class="pc-micon"><i class="ph-duotone ph-users"></i></span>
+                  <span class="pc-mtext">Manage / Invite Users</span>
+                </NavLink>
+              </li>
+
+              <li class="pc-item">
+                <NavLink href="/app/subscription" class="pc-link" ActiveClass="active" Match="NavLinkMatch.All">
+                  <span class="pc-micon"><i class="ph-duotone ph-credit-card"></i></span>
+                  <span class="pc-mtext">Plan &amp; Billing</span>
+                </NavLink>
+              </li>
+        }
+
+        <!-- Always visible -->
+        <li class="pc-item">
+          <NavLink href="/app/contact-us" class="pc-link" ActiveClass="active" Match="NavLinkMatch.All">
+            <span class="pc-micon"><i class="ph-duotone ph-question"></i></span>
+            <span class="pc-mtext">Support / Contact us</span>
+          </NavLink>
+        </li>
+
+        <!-- Logout is not navigation -->
+        <li class="pc-item">
+          <button type="button" class="pc-link" @onclick="LogoutFromApp">
+            <span class="pc-micon"><i class="ph-duotone ph-power"></i></span>
+            <span class="pc-mtext">Logout</span>
+          </button>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+</nav>
+
+@code {
+    [CascadingParameter] public UserDto? CurrentUser { get; set; }
+    private UserDto? user;
+    private bool isReady;
+
+    bool _isBasicUser;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || isReady) return;
+
+        try
+        {
+            var user = await UserState.GetOrLoadAsync();
+            _isBasicUser = string.Equals(user?.Role, "user", StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            isReady = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LogoutFromApp()
+    {
+        await UserState.ClearAsync();
+        await JS.InvokeVoidAsync("clerkInterop.logout");
+        Navigation.NavigateTo("/app/login", true);
+    }
+}

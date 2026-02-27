@@ -1,0 +1,20 @@
+﻿@inject IDialogService DialogService
+
+<MudDialog Class="p-6">
+    <DialogContent>
+        <MudText Typo="Typo.body2">
+            You will retain access until @(NextBillingDate.ToString("MMM dd, yyyy")).
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Ok(true))" Variant="Variant.Outlined" Color="Color.Error">Yes, Cancel</MudButton>
+        <MudButton OnClick="() => MudDialog.Cancel()" Variant="Variant.Filled" Color="Color.Primary">No</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public DateTime NextBillingDate { get; set; }
+}

@@ -1,0 +1,203 @@
+﻿@page "/app/sqlToJson"
+@using System.Text.Json
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.Infrastructure.ServiceModels
+@inject ISqlRunnerService SqlRunner
+@inject IJSRuntime JS
+
+@layout MasterAdminLayout
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Parts
+@using Spydomo.Web.Components.Layout
+
+<RequireRole Roles="admin" MustBeSpydomoEmployee="true">
+
+    <div class="w-50 mx-auto">
+    <div class="card my-5 d-inline-block">
+        <div class="card-body">
+
+        <h3>SQL → JSON</h3>
+
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                    <label>Max rows:</label>
+                    <input type="number" min="1" max="100000" @bind="MaxRows" style="width:120px;" />
+
+                    <label>Timeout (sec):</label>
+                    <input type="number" min="1" max="300" @bind="TimeoutSeconds" style="width:120px;" />
+
+                    <button @onclick="RunAsync" disabled="@_running">Run</button>
+                    <button @onclick="DownloadAsync" disabled="@string.IsNullOrWhiteSpace(_json)">Download JSON</button>
+                    <button @onclick="CopyAsync" disabled="@string.IsNullOrWhiteSpace(_json)">
+                        @(_copied ? "Copied!" : "Copy")
+                    </button>
+
+                    @if (!string.IsNullOrWhiteSpace(_copyStatus))
+                    {
+                        <span style="font-size:0.9rem; opacity:0.8;">@_copyStatus</span>
+                    }
+                </div>
+
+
+        <div style="margin-top:12px;">
+            <textarea @bind="_sql" rows="10" style="width:100%; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;"></textarea>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div style="margin-top:12px; padding:12px; border:1px solid #c33; background:#fff5f5;">
+                <b>Error:</b> @_error
+            </div>
+        }
+
+        @if (_meta is not null)
+        {
+            <div style="margin-top:12px; padding:12px; border:1px solid #ddd;">
+                <div><b>Elapsed:</b> @_meta.ElapsedMs ms</div>
+                <div><b>Rows:</b> @_meta.RowCount (returned: @_meta.TruncatedToMaxRows)</div>
+                <div><b>Columns:</b> @string.Join(", ", _meta.Columns)</div>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_json))
+        {
+            <div style="margin-top:12px;">
+                <h4>JSON output</h4>
+                <pre style="max-height:520px;max-width:1000px; overflow:auto; padding:12px; border:1px solid #ddd; background:#fafafa;">@_json</pre>
+            </div>
+        }
+        </div>
+        </div>
+        </div>
+
+</RequireRole>
+
+@code {
+    private string _sql = "select top 50 * from Companies order by Id desc";
+    private string? _json;
+    private string? _error;
+    private bool _running;
+
+    private int MaxRows { get; set; } = 2000;
+    private int TimeoutSeconds { get; set; } = 30;
+
+    private SqlQueryResult? _meta;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
+    private async Task RunAsync()
+    {
+        _running = true;
+        _error = null;
+        _json = null;
+        _meta = null;
+
+        try
+        {
+            var result = await SqlRunner.ExecuteSelectAsync(_sql, MaxRows, TimeoutSeconds);
+
+            if (!result.Success)
+            {
+                _error = result.Error ?? "Unknown error.";
+                return;
+            }
+
+            _meta = result;
+
+            // ✅ RAW JSON MODE: if query returns exactly one cell that looks like JSON, display it directly
+            if (result.Rows.Count == 1
+                && result.Columns.Count == 1
+                && result.Rows[0].TryGetValue(result.Columns[0], out var onlyVal)
+                && onlyVal is string s
+                && !string.IsNullOrWhiteSpace(s))
+            {
+                var t = s.Trim();
+                if ((t.StartsWith("{") && t.EndsWith("}")) || (t.StartsWith("[") && t.EndsWith("]")))
+                {
+                    _json = FormatJson(t);
+                    return;
+                }
+            }
+
+            // If you want only the rows:
+            // _json = JsonSerializer.Serialize(result.Rows, JsonOptions);
+
+            // If you want metadata + rows (usually nicer):
+            var payload = new
+            {
+                result.RowCount,
+                result.TruncatedToMaxRows,
+                result.ElapsedMs,
+                result.Columns,
+                Rows = result.Rows
+            };
+            _json = JsonSerializer.Serialize(payload, JsonOptions);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private static string FormatJson(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, JsonOptions);
+        }
+        catch
+        {
+            return json; // if not valid JSON for any reason, show raw
+        }
+    }
+
+
+    private async Task DownloadAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_json))
+            return;
+
+        var fileName = $"sql-results-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+        await JS.InvokeVoidAsync("spydomoDownloadTextFile", fileName, _json);
+    }
+
+    private bool _copied;
+    private string? _copyStatus;
+
+    private async Task CopyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_json))
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync("spydomoCopyToClipboard", _json);
+
+            _copied = true;
+            _copyStatus = $"Copied {(_json.Length):n0} chars";
+
+            StateHasChanged();
+
+            await Task.Delay(1200);
+
+            _copied = false;
+            _copyStatus = null;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _copied = false;
+            _copyStatus = "Copy failed (browser blocked clipboard).";
+            _error = ex.Message;
+        }
+    }
+
+}

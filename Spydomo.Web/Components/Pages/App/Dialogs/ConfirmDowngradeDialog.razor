@@ -1,0 +1,27 @@
+﻿@inject IDialogService DialogService
+
+<MudDialog Class="p-6">
+    <DialogContent>
+        <p class="mb-6">
+            You are about to downgrade your plan from <b>@OldQuantity</b> to <b>@NewQuantity</b> tracked companies.
+        </p>
+        <p>
+            Your plan will be downgraded immediately. No credit or refund will be issued. Are you sure you want to proceed?.
+        </p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Ok(true))" Variant="Variant.Filled" Color="Color.Primary">
+            Confirm Downgrade
+        </MudButton>
+        <MudButton OnClick="() => MudDialog.Cancel()" Color="Color.Error" Variant="Variant.Outlined">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public int OldQuantity { get; set; }
+    [Parameter] public int NewQuantity { get; set; }
+}

@@ -1,0 +1,43 @@
+﻿@page "/subprocessors"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Subprocessors — Spydomo</PageTitle>
+
+<ContentPage Title="Subprocessors"
+             Subtitle="Service providers that help us deliver Spydomo"
+             HeroImageUrl="/assets/data.png"
+             HeroAlt=""
+             TitleIconUrl="">
+
+    <p>
+        To provide, secure, and improve Spydomo, we rely on a small set of trusted service providers
+        that process limited personal data on our behalf. These providers are our <strong>subprocessors</strong>.
+        We only use subprocessors where necessary and we require them to follow appropriate data protection and
+        security practices.
+    </p>
+
+    <p class="mt-3">
+        This page lists the main subprocessors we use today. We may update this list over time as we evolve
+        our infrastructure. Where required by law, we will notify customers of material changes.
+    </p>
+
+    <SubprocessorsTable />
+
+    <p class="mt-4">
+        If you have questions about our subprocessors or data protection practices, please contact us at
+        <a href="mailto:info@spydomo.com">info@spydomo.com</a>.
+    </p>
+
+</ContentPage>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

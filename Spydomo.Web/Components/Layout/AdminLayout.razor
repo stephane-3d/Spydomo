@@ -1,0 +1,88 @@
+﻿@inherits LayoutComponentBase
+@namespace Spydomo.Web.Components.Layout
+@using Spydomo.Web.Components.Pages.Parts
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using Spydomo.Web.Classes
+@using Spydomo.Infrastructure.Clerk
+@inject NavigationManager Navigation
+@inject ClerkJsInterop ClerkJs
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <NotAuthorized>
+            <RedirectToLogin />
+        </NotAuthorized>
+    </AuthorizeView>
+
+    <MudThemeProvider Theme="MyCustomTheme" />
+    @* Needed for dialogs *@
+    <MudDialogProvider />
+    <MudPopoverProvider @rendermode="InteractiveServer" />
+    @* Needed for snackbars *@
+    <MudSnackbarProvider @rendermode="InteractiveServer"
+                         MaxDisplayedSnackbars="4"
+                         PreventDuplicates="true"
+                         SnackbarVariant="Variant.Filled"
+                         AnchorOrigin="SnackbarAnchorOrigin.TopRight" />
+    @* Needed for dialogs *@
+    <MudDialogProvider @rendermode="InteractiveServer" />
+        <MudLayout>
+            <AdminSideBar />
+            <div class="pc-container top-0">
+                <div class="pc-content">
+                    @Body
+                </div>
+                <div class="site-footer">
+                    <p class="footline">
+                        Spydomo &copy; @DateTime.Now.Year
+                        <span class="sep">•</span>
+                        <a href="/terms" class="link">Terms &amp; Conditions</a>
+                        <span class="sep">•</span>
+                        <a href="/privacy" class="link">Privacy Policy</a>
+                    </p>
+
+                    <p class="footline">
+                        Made in Canada
+                        <MudImage Src="/assets/images/maple-leaf-red.svg"
+                                  Alt="Canada"
+                                  Class="leaf" />
+                    </p>
+                </div>
+
+            </div>
+
+        <script>
+            window.spydomoDownloadText = (filename, text) => {
+              const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+              document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+            };
+        </script>
+
+        </MudLayout>
+</CascadingAuthenticationState>
+
+@code {
+    MudTheme MyCustomTheme = new MudTheme
+        {
+            Typography = new Typography
+            {
+                Default = new DefaultTypography()
+                {
+                    FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }
+                },
+                H1 = new H1Typography { FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }, FontWeight = "800" },
+                H2 = new H2Typography { FontFamily = new[] { "Public Sans", "system-ui", "Segoe UI", "Roboto", "sans-serif" }, FontWeight = "800" }
+            },
+            PaletteLight = new PaletteLight
+            {
+                Primary = "#008080",
+                PrimaryDarken = "#006666",
+                PrimaryLighten = "#009a9a"
+            }
+        };
+}

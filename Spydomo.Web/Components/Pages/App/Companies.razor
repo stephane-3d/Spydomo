@@ -1,0 +1,244 @@
+﻿@page "/app/companies"
+@inject ICompanyService CompanyService
+@inject IClientContextService ClientContextService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ICompanySuggestionService CompanySuggestionService
+
+@using Spydomo.DTO
+@using Spydomo.Infrastructure.Interfaces
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Components.Pages.Parts
+@using Spydomo.Web.Components.Pages.App.Dialogs
+@layout AdminLayout
+@rendermode InteractiveServer
+
+<PageTitle>Manage companies</PageTitle>
+<RequireRole Roles="admin,superadmin">
+    <AdminPageHeader Title="Manage Tracked Companies"
+                     Kicker="Companies"
+                     Icon="ph ph-buildings"
+                     Subtext="Add competitors, partners, or your own brands to track.">
+        <Actions>
+            @* optional 
+            <MudButton Href="/app/companies/new" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">
+                <i class="ph ph-plus" style="margin-right:6px;"></i> Add company
+            </MudButton>*@
+        </Actions>
+    </AdminPageHeader>
+
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Medium" Class="mt-4" />
+    }
+    else if (HasActivePlan)
+    {
+        <MudPaper Class="pa-3 mb-4 d-flex align-center justify-space-between" Elevation="1">
+            <MudText Typo="Typo.body1">
+                You’re tracking <b>@CompaniesUsed</b> compan@(CompaniesUsed == 1 ? "y" : "ies"). Your plan allows up to <b>@CompaniesAllowed</b>.
+            </MudText>
+
+            @if (PlanLimitReached)
+            {
+                <MudButton Href="/app/subscription" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">
+                    Upgrade Plan
+                </MudButton>
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mb-4 d-flex align-center justify-space-between" Elevation="1" Color="Color.Warning">
+            <MudText Typo="Typo.body1">
+                You don’t have an active plan. Upgrade to start tracking companies.
+            </MudText>
+
+            <MudButton Href="/app/subscription" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small">
+                Upgrade Now
+            </MudButton>
+        </MudPaper>
+    }
+
+
+    <CompanyAddCard @key="addCardKey" OnCompanyAdded="HandleCompanyAdded"
+                    Suggestions="_quick" />
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Medium" Class="mt-4" />
+    }
+    else if (!trackedCompanies.Any())
+    {
+        <MudText Typo="Typo.body1" Class="mt-4 mb-4">No tracked company yet. Let’s add your first one!</MudText>
+    }
+    else
+    {
+        <MudTable Items="trackedCompanies" Hover="true">
+            <HeaderContent>
+                <MudTh>Company</MudTh>
+                <MudTh>Note</MudTh>
+                <MudTh />
+            </HeaderContent>
+
+            <RowTemplate>
+                <MudTd>
+                    <MudLink Href="@($"/app/companies/{context.CompanyId}")" Target="_blank">
+                        @context.CompanyName
+                    </MudLink><br />
+                    <MudText Typo="Typo.caption">@context.CompanyUrl</MudText>
+                </MudTd>
+
+                <MudTd>
+                    <MudTextField @bind-Value="context.Notes"
+                    Placeholder="e.g. Main competitor"
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"
+                    Immediate="true"
+                    Class="w-50" />
+                </MudTd>
+
+                <MudTd>
+                    <MudStack Row="true" Spacing="1">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Save"
+                        Color="Color.Primary"
+                        OnClick="@(() => SaveNoteAsync(context))"
+                        Title="Save note" />
+
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                        Color="Color.Error"
+                        OnClick="@(() => DeleteCompanyAsync(context))"
+                        Title="Remove from list" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+    </RequireRole>
+
+@code {
+    private List<TrackedCompanyDto> trackedCompanies = new();
+    private bool _initialized = false;
+    private int CompaniesUsed = 0;
+    private int CompaniesAllowed = 0;
+    private bool HasActivePlan = false;
+    private bool PlanLimitReached = false;
+    private bool isLoading = true;
+    private int clientId;
+    private Guid addCardKey = Guid.NewGuid();
+    private List<CompanyAddCard.QuickSuggestion> _quick = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            _initialized = true;
+
+            try
+            {
+                await LoadCompanies();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error loading companies: " + ex.Message);
+            }
+        }
+    }
+
+    private async Task LoadCompanies()
+    {
+        isLoading = true;
+        try
+        {
+            clientId = await ClientContextService.GetCurrentClientIdAsync();
+            trackedCompanies = await CompanyService.GetTrackedCompaniesForClientAsync(clientId);
+
+            var quota = await ClientContextService.GetCompanyQuotaStatusAsync();
+            CompaniesUsed = quota.CurrentlyTracked;
+            CompaniesAllowed = quota.TotalAllowed;
+            HasActivePlan = quota.HasPlan;
+            PlanLimitReached = quota.Remaining <= 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading companies: " + ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+            addCardKey = Guid.NewGuid();
+            StateHasChanged();
+        }
+    }
+
+    private void AddToList(TrackedCompanyDto tracked)
+    {
+        if (!trackedCompanies.Any(tc => tc.Id == tracked.Id))
+        {
+            trackedCompanies.Insert(0, tracked);
+            CompaniesUsed++;
+        }
+    }
+
+    private async Task SaveNoteAsync(TrackedCompanyDto tc)
+    {
+        try
+        {
+            await CompanyService.UpdateTrackedCompanyNoteAsync(tc.Id, tc.Notes ?? "");
+            Snackbar.Add($"Note saved for {tc.CompanyName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error saving note: " + ex.Message);
+            Snackbar.Add("Failed to save note.", Severity.Error);
+        }
+    }
+
+    private async Task DeleteCompanyAsync(TrackedCompanyDto tc)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"Are you sure you want to remove {tc.CompanyName} from your list?" },
+            { "ButtonText", "Yes, remove it" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = DialogService.Show<ConfirmationDialog>("Confirm Deletion", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            try
+            {
+                await CompanyService.RemoveTrackedCompanyAsync(clientId, tc.Id);
+                LoadCompanies();
+                Snackbar.Add($"{tc.CompanyName} removed from your list.", Severity.Warning);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error deleting company: " + ex.Message);
+                Snackbar.Add("Failed to delete company.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task HandleCompanyAdded(TrackedCompanyDto tracked)
+    {
+        // tracked.CompanyId should exist
+        var clientId = await ClientContextService.GetCurrentClientIdAsync();
+
+        var suggestions = await CompanySuggestionService
+            .GetSuggestionsForNewCompanyAsync(clientId, tracked.CompanyId, take: 8);
+
+        _quick = suggestions
+            .Where(s => !string.IsNullOrWhiteSpace(s.Url))
+            .Select(s => new CompanyAddCard.QuickSuggestion(s.Name, s.Url!))
+            .ToList();
+
+        AddToList(tracked);
+        StateHasChanged();
+    }
+}

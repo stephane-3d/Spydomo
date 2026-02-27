@@ -1,0 +1,31 @@
+﻿@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <p>
+            You are about to upgrade your plan from <b>@OldQuantity</b> to <b>@NewQuantity</b> tracked companies.
+        </p>
+        <p>
+            This upgrade will result in an immediate prorated charge of <b>@EstimatedCharge.ToString("C")</b>.
+        </p>
+        <p>
+            Do you want to proceed?
+        </p>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Close(DialogResult.Ok(true))" Variant="Variant.Filled" Color="Color.Primary">
+            Yes, Upgrade
+        </MudButton>
+        <MudButton OnClick="() => MudDialog.Cancel()" Color="Color.Error" Variant="Variant.Outlined">
+            Cancel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public int OldQuantity { get; set; }
+    [Parameter] public int NewQuantity { get; set; }
+    [Parameter] public decimal EstimatedCharge { get; set; }
+}

@@ -1,0 +1,147 @@
+﻿@page "/terms"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Terms and conditions — Spydomo</PageTitle>
+
+<ContentPage Title="Terms & Conditions"
+             Subtitle="Effective Date: August 6, 2025"
+             HeroImageUrl="/assets/terms.png"
+             HeroAlt=""
+             TitleIconUrl="">
+
+
+    <p>Welcome to Spydomo. By accessing or using our website, products, or services, you agree to be bound by the following Terms and Conditions. Please read them carefully.</p>
+
+    <h4 class="mt-4">1. Acceptance of Terms</h4>
+    <p>
+        By using Spydomo, you confirm that you are at least 18 years old, are a human (no bots or automated signups),
+        and agree to comply with and be legally bound by these terms. If you do not agree, please do not use our services.
+    </p>
+
+    <h4 class="mt-4">2. Use of the Service</h4>
+    <p>
+        Spydomo provides tools and insights for tracking market signals and competitive intelligence.
+        You agree to use our services for lawful purposes only and not for any unauthorized, fraudulent,
+        or malicious activities, or in violation of any laws or regulations applicable in your jurisdiction.
+    </p>
+
+    <h4 class="mt-4">3. Account Responsibility</h4>
+    <p>
+        If you create an account, you are responsible for maintaining the security of your login credentials
+        and for all activity that occurs under your account, including activity by other users invited under
+        your client account.
+    </p>
+    <p>
+        You must provide accurate information when signing up, including your legal name and a valid email address.
+        Spydomo is not liable for any loss or damage resulting from your failure to keep your account secure
+        or your credentials confidential.
+    </p>
+
+    <h4 class="mt-4">4. Subscription, Free Trial &amp; Billing</h4>
+    <p>
+        Access to certain features of Spydomo may require a paid subscription. We may offer a free trial;
+        the length and conditions of any trial will be shown at signup. After the trial ends, you must start
+        a paid subscription to keep using the service.
+    </p>
+    <p>
+        Subscriptions are billed in advance on a recurring basis (for example, monthly) via our payment
+        provider (such as Stripe). By subscribing, you authorize us and our payment provider to charge your
+        chosen payment method for the applicable fees and any taxes.
+    </p>
+    <p>
+        All fees are non-refundable, except where refunds are required by applicable law.
+    </p>
+    <p>
+        If you cancel your subscription, the cancellation will take effect at the end of your current billing period. You’ll retain access until then and you 
+        will not receive a refund for any unused time.
+    </p>
+    <p>
+        If you downgrade your plan (for example, reduce the number of companies you track), the change takes effect immediately and your new limits apply right away. 
+        We do not provide refunds or credits for downgrades, although we may apply prorated charges when you upgrade during a billing period.
+    </p>
+    <p>
+        If you upgrade your subscription (for example, by adding more tracked companies), the upgrade may
+        take effect immediately and we may prorate the fees for the remainder of the current billing period.
+    </p>
+
+    <h4 class="mt-4">5. Intellectual Property &amp; Content Ownership</h4>
+    <p>
+        All content, logos, trademarks, and software used to provide Spydomo are the property of Spydomo or its
+        licensors and are protected by applicable intellectual property laws. You may not copy, modify, reverse
+        engineer, or distribute any part of our service without our explicit permission.
+    </p>
+    <p>
+        You retain ownership of the content and data you submit to Spydomo. By using the service, you grant us
+        a limited license to use, process, and store that content as necessary to operate and improve the service.
+    </p>
+    <p>
+        If you choose to send us feedback, suggestions, or ideas, you agree that we may use them without any
+        obligation to compensate or attribute them to you.
+    </p>
+
+    <h4 class="mt-4">6. Data &amp; Privacy</h4>
+    <p>
+        We care about your privacy. Our use of your personal information is governed by our
+        <a href="/privacy">Privacy Policy</a>. By using our services, you consent to such use.
+    </p>
+    <p><strong>Data Processing</strong></p>
+    <p>
+        To the extent Spydomo processes personal data on your behalf in connection with the services,
+        our Data Processing Agreement ("DPA") applies and is incorporated into these Terms by reference.
+        By using Spydomo, you agree to the DPA available at
+        <a href="/dpa">https://spydomo.com/dpa</a>
+        (or any successor URL we may designate).
+    </p>
+
+    <h4 class="mt-4">7. Service Availability &amp; Modifications</h4>
+    <p>
+        We strive for uptime and reliability, but we do not guarantee that the service will always be available,
+        uninterrupted, secure, or error-free. We may modify, suspend, or discontinue any part of the service
+        at any time, with or without notice.
+    </p>
+
+    <h4 class="mt-4">8. Cancellation &amp; Termination</h4>
+    <p>
+        You can cancel your subscription at any time from within your account settings. Unless otherwise stated,
+        your cancellation will take effect at the end of your current billing period, and you will not be charged again.
+    </p>
+    <p>
+        We reserve the right to suspend or terminate your account, or refuse current or future use of the service,
+        if we reasonably believe you are misusing the service, violating these terms, or engaging in unlawful or
+        abusive behavior.
+    </p>
+
+    <h4 class="mt-4">9. Limitation of Liability</h4>
+    <p>
+        Spydomo is provided on an "as is" and "as available" basis. To the maximum extent permitted by law,
+        we are not liable for any indirect, incidental, special, consequential, or punitive damages, or any loss
+        of profits, revenue, data, or business opportunities arising out of or in connection with your use of the service.
+    </p>
+
+    <h4 class="mt-4">10. Changes to Terms</h4>
+    <p>
+        We may update these terms from time to time. If we make significant changes, we will notify you,
+        for example by email or by posting a notice on our website or within the app. Your continued use of
+        the service after changes take effect means you accept the updated terms.
+    </p>
+
+    <h4 class="mt-4">11. Contact</h4>
+    <p>
+        Questions? Comments? Email us at <a href="mailto:info@spydomo.com">info@spydomo.com</a>.
+    </p>
+
+</ContentPage>
+
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("Trying to scroll to top...");
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

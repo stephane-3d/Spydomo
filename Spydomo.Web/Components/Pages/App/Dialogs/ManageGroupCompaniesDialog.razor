@@ -1,0 +1,82 @@
+﻿@using Spydomo.DTO
+@using Spydomo.Infrastructure.Interfaces
+@inject ICompanyService CompanyService
+@inject ICompanyGroupService CompanyGroupService
+@inject IClientContextService ClientContextService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6">Manage Companies for @GroupName</MudText>
+
+        @if (loading)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudList T="int"
+                     SelectionMode="SelectionMode.MultiSelection"
+                     @bind-SelectedValues="SelectedCompanyIds">
+                @foreach (var company in allCompanies)
+                {
+                    <MudListItem Value="@company.CompanyId">
+                        @company.CompanyName (@company.CompanyUrl)
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="SaveAsync" Disabled="@loading">Save</MudButton>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public int GroupId { get; set; }
+    [Parameter] public string? GroupName { get; set; }
+
+    private IReadOnlyCollection<int> SelectedCompanyIds { get; set; } = new HashSet<int>();
+    private List<TrackedCompanyDto> allCompanies = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var clientId = await ClientContextService.GetCurrentClientIdAsync();
+            allCompanies = await CompanyService.GetTrackedCompaniesForClientAsync(clientId);
+
+            var companyIdsInGroup = await CompanyGroupService.GetCompanyIdsForGroupAsync(GroupId);
+            SelectedCompanyIds = companyIdsInGroup.ToHashSet();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to load companies: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            await CompanyGroupService.UpdateCompaniesForGroupAsync(GroupId, SelectedCompanyIds.ToList());
+            MudDialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Failed to save companies: " + ex.Message, Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}
+

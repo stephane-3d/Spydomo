@@ -1,0 +1,55 @@
+﻿@page "/app/login-old"
+@using Spydomo.Web.Classes
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components.Authorization
+@using Spydomo.Infrastructure.Clerk
+
+@inject ClerkJsInterop ClerkJsInterop
+@inject IOptions<ClerkOptions> ClerkOptions
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+@using Spydomo.Web.Components.Layout
+@layout MainLayout
+
+<div class="center-25">
+    <div id="clerk-root-signin"></div>
+</div>
+
+<PageTitle>Spydomo - Login</PageTitle>
+
+
+@code {
+    private bool _hasRendered = false;
+
+    protected override void OnInitialized()
+    {
+        /*var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("init", out var _val) == false)
+        {
+            Navigation.NavigateTo("/app/login?init=1", true);
+        }*/
+        
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_hasRendered)
+        {
+            _hasRendered = true;
+
+            /*var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                Navigation.NavigateTo("/app/dashboard", forceLoad: true);
+                return;
+            }*/
+
+            await ClerkJsInterop.MountSignInAsync(
+                elementId: "clerk-root-signin",
+                afterSignInUrl: ClerkOptions.Value.SignInRedirectUrl
+            );
+        }
+    }
+}

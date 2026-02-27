@@ -1,0 +1,193 @@
+﻿@page "/spydomo-vs-competitive-intelligence-software"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Why Spydomo vs Competitive Intelligence Software</PageTitle>
+
+<section class="vs-wrap">
+
+    <!-- HERO -->
+    <header class="vs-hero">
+        <div class="vs-hero-inner">
+            <div>
+                <h1>Why Spydomo vs Competitive Intelligence Software</h1>
+                <p class="vs-sub">
+                    Traditional CI platforms are often built for sales enablement: battlecards, deal support, and revenue workflows.
+                    Spydomo is built for <strong>ongoing competitive awareness</strong> — a curated feed of signals your CEO/PM/Marketing team can trust,
+                    without a heavy rollout. This category includes tools like Crayon, Klue, and Kompyte.
+                </p>
+
+                <div class="vs-hero-actions">
+                    <a class="vs-btn primary" href="/pricing">Try it free</a>
+                    <a class="vs-btn" href="/how-it-works">How it works</a>
+                </div>
+
+                <p class="vs-note">
+                    If you want a system your team checks weekly to stay ahead — not a program you “implement” — Spydomo is designed for that.
+                </p>
+            </div>
+
+            <div class="vs-hero-card">
+                <div class="vs-hero-card-title">Best fit</div>
+                <ul class="vs-hero-list">
+                    <li><strong>CI platforms:</strong> sales orgs, enablement, battlecards, win/loss</li>
+                    <li><strong>Spydomo:</strong> founders, product & marketing leaders, ongoing market awareness</li>
+                    <li>SMB SaaS (10–100 employees) who want signal without heavy process</li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <!-- COMPARISON -->
+    <section class="vs-compare" aria-label="Comparison table">
+        <div class="vs-table">
+
+            <div class="vs-head">
+                <div class="vs-cell feature"></div>
+                <div class="vs-cell colhead">
+                    <div class="vs-coltitle">CI Platforms</div>
+                    <div class="vs-coldesc">Enablement-first (battlecards, revenue workflows)</div>
+                </div>
+                <div class="vs-cell colhead sp">
+                    <div class="vs-coltitle">Spydomo</div>
+                    <div class="vs-coldesc">Awareness-first (curated signals for leaders)</div>
+                </div>
+            </div>
+
+            @Row("Primary outcome",
+            gpt: "Help sellers win competitive deals (enablement).",
+                        sp: "Help leaders see what changed and what matters (awareness).",
+                        gptKind: "check", spKind: "check")
+
+            @Row("Target users",
+                        gpt: "Sales, enablement, PMM supporting revenue teams.",
+                        sp: "CEO/founders, product managers, marketing leaders.",
+                        gptKind: "check", spKind: "check")
+
+            @Row("Setup & rollout",
+                        gpt: "Often a program: onboarding, workflows, enablement adoption.",
+                        sp: "Self-serve: track companies/groups and start receiving signals.",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("Output format",
+                        gpt: "Battlecards, decks, deal guidance, enablement content.",
+                        sp: "Curated feed: signals, trends, themes, and context over time.",
+                        gptKind: "check", spKind: "check")
+
+            @Row("Cadence",
+                        gpt: "Often tied to launches, deal cycles, and internal processes.",
+                        sp: "Built for a weekly rhythm: “what should we pay attention to?”",
+                        gptKind: "mixed", spKind: "check")
+
+            @Row("Total cost of ownership",
+                        gpt: "Requires an owner (enablement/PMM) to maintain and drive adoption.",
+                        sp: "Maintained system with consistent output and lightweight workflow.",
+                        gptKind: "manual", spKind: "check")
+
+            @Row("Signal-to-noise",
+                        gpt: "Can surface a lot — curation depends on your setup and process.",
+                        sp: "Designed to filter and prioritize signals for smaller teams.",
+                        gptKind: "mixed", spKind: "check")
+
+            @Row("Traceability",
+                        gpt: "Generally strong, but depends on configuration and usage.",
+                        sp: "Designed for trust: every insight is tied back to sources.",
+                        gptKind: "mixed", spKind: "check")
+
+            @Row("What you actually buy",
+                        gpt: "A platform + internal enablement motion.",
+                        sp: "A competitive awareness system built for your use case.",
+                        gptKind: "manual", spKind: "check")
+
+        </div>
+    </section>
+
+    <!-- CLOSE -->
+    <footer class="vs-footer">
+        <div class="vs-footer-inner">
+            <h2>In short</h2>
+            <p class="vs-footer-lead">
+                <strong>CI platforms help you win deals.</strong>
+                <strong>Spydomo helps you stay ahead.</strong>
+            </p>
+            <p class="vs-footer-sub">
+                If you’re a 10–100 person SaaS and you want a simple weekly cadence of competitive signals — without a heavy CI rollout —
+                Spydomo is built for that.
+            </p>
+            <div class="vs-hero-actions">
+                <a class="vs-btn primary" href="/pricing">Try it free</a>
+                <a class="vs-btn" href="/use-cases">See use cases</a>
+            </div>
+        </div>
+    </footer>
+
+</section>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+
+    RenderFragment Row(string feature, string gpt, string sp, string gptKind, string spKind) => __builder =>
+    {
+        <div class="vs-row">
+            <div class="vs-cell feature">
+                <div class="vs-feature">@feature</div>
+            </div>
+
+            <div class="vs-cell">
+                <div class="vs-pill @("k-" + gptKind)">
+                    @Icon(gptKind)
+                    <span>@Label(gptKind)</span>
+                </div>
+                <div class="vs-text">@gpt</div>
+            </div>
+
+            <div class="vs-cell sp">
+                <div class="vs-pill @("k-" + spKind)">
+                    @Icon(spKind)
+                    <span>@Label(spKind)</span>
+                </div>
+                <div class="vs-text">@sp</div>
+            </div>
+        </div>
+        ;
+    };
+
+    RenderFragment Icon(string kind) => __builder =>
+    {
+        if (kind == "check")
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M7.7 13.3 4.6 10.2a1 1 0 0 0-1.4 1.4l3.8 3.8a1 1 0 0 0 1.4 0l8.4-8.4a1 1 0 1 0-1.4-1.4l-7.7 7.7z" />
+            </svg>
+            ;
+        }
+        else if (kind == "manual")
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M4 10a6 6 0 1 1 6 6H6.5L4 18.5V16a6 6 0 0 1 0-6zm6-4a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
+            </svg>
+            ;
+        }
+        else
+        {
+            <svg class="vs-ic" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M5 10a1 1 0 0 1 1-1h8a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z" />
+            </svg>
+            ;
+        }
+    };
+
+    string Label(string kind) => kind switch
+    {
+        "check" => "Included",
+        "manual" => "Manual",
+        "mixed" => "Varies",
+        _ => "Not included"
+    };
+}

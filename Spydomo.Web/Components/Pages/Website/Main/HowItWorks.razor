@@ -1,0 +1,199 @@
+﻿@page "/how-it-works"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+<PageTitle>How Spydomo works</PageTitle>
+
+<section class="mk-hero">
+    <div class="container">
+        <div class="mk-hero-inner">
+            <div>
+                <h1 class="mk-title">How Spydomo works</h1>
+                <p class="mk-lead">
+                    Add a company. Spydomo discovers where the conversations happen, monitors them on a schedule,
+                    and delivers a curated brief of what changed — and what matters.
+                </p>
+
+                <div class="mk-actions">
+                    <a class="btn primary" href="/app/signup">Start free (14 days)</a>
+                    <a class="btn" href="/use-cases">See use cases</a>
+                </div>
+
+                <p class="mk-note">
+                    No integrations. No dashboards to build. Just competitive awareness on autopilot.
+                </p>
+            </div>
+
+            <div class="mk-hero-media" aria-hidden="true">
+                <img src="/assets/how-it-works.png" alt="Robot operating gears illustrating how Spydomo works" />
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section class="mk-section">
+    <div class="container">
+        <h2 class="section-title">The 6 steps</h2>
+
+        <div class="grid-3">
+            <div class="card how-card">
+                <i class="ph ph-magnifying-glass icon" aria-hidden="true"></i>
+                <h3>Add a company</h3>
+                <p class="muted">Paste a URL. That’s it — no integrations, no configs.</p>
+            </div>
+
+            <div class="card how-card">
+                <i class="ph ph-plug icon" aria-hidden="true"></i>
+                <h3>We find the sources</h3>
+                <p class="muted">Reviews, forums, social, blogs — auto-discovered and organized.</p>
+            </div>
+
+            <div class="card how-card">
+                <i class="ph ph-cpu icon" aria-hidden="true"></i>
+                <h3>AI distills the signal</h3>
+                <p class="muted">Launches, pains, trends — turned into clean, structured insights.</p>
+            </div>
+
+            <div class="card how-card">
+                <i class="ph ph-bell icon" aria-hidden="true"></i>
+                <h3>Get your brief</h3>
+                <p class="muted">A concise weekly email — no dashboard building required.</p>
+            </div>
+
+            <div class="card how-card">
+                <i class="ph ph-chart-line-up icon" aria-hidden="true"></i>
+                <h3>Spot moves fast</h3>
+                <p class="muted">See momentum and shifts at a glance — by company or group.</p>
+            </div>
+
+            <div class="card how-card">
+                <i class="ph ph-share-network icon" aria-hidden="true"></i>
+                <h3>Share in one click</h3>
+                <p class="muted">Forward signals to founders, product, marketing, or clients.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-section mk-alt">
+    <div class="container">
+        <div class="mk-split">
+            <div>
+                <h2 class="section-title">What’s happening under the hood</h2>
+                <p class="muted" style="max-width:70ch">
+                    Spydomo is not “ask a chatbot.” It’s a pipeline that runs on a schedule and keeps context over time.
+                    Here’s the simple version:
+                </p>
+
+                <div class="mk-bullets">
+                    <div class="mk-bullet">
+                        <div class="mk-bullet-title">1) Discover</div>
+                        <div class="mk-bullet-text">
+                            We map the company to high-signal sources (reviews, communities, social, blogs, etc.).
+                        </div>
+                    </div>
+
+                    <div class="mk-bullet">
+                        <div class="mk-bullet-title">2) Collect</div>
+                        <div class="mk-bullet-text">
+                            Spydomo pulls new content on a cadence and keeps the raw source linked.
+                        </div>
+                    </div>
+
+                    <div class="mk-bullet">
+                        <div class="mk-bullet-title">3) Distill</div>
+                        <div class="mk-bullet-text">
+                            AI extracts what matters: themes, pain points, launches, positioning shifts — structured and searchable.
+                        </div>
+                    </div>
+
+                    <div class="mk-bullet">
+                        <div class="mk-bullet-title">4) Compare</div>
+                        <div class="mk-bullet-text">
+                            We track history so you can see what’s new, what’s recurring, and what’s trending.
+                        </div>
+                    </div>
+
+                    <div class="mk-bullet">
+                        <div class="mk-bullet-title">5) Deliver</div>
+                        <div class="mk-bullet-text">
+                            You get a brief and a clean UI your team can review weekly — without extra work.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mk-sidecard card">
+                <h3 style="margin-top:0">Designed for small teams</h3>
+                <p class="muted">
+                    The goal isn’t more data. It’s less noise and more direction.
+                </p>
+
+                <div class="mk-mini">
+                    <div class="mk-mini-row">
+                        <span class="mk-dot"></span>
+                        <span><strong>Curated signals</strong> over raw alerts</span>
+                    </div>
+                    <div class="mk-mini-row">
+                        <span class="mk-dot"></span>
+                        <span><strong>Trends</strong> over snapshots</span>
+                    </div>
+                    <div class="mk-mini-row">
+                        <span class="mk-dot"></span>
+                        <span><strong>Traceability</strong> over black-box summaries</span>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px">
+                    <a class="btn primary" href="/app/signup">Try Spydomo free</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-section">
+    <div class="container">
+        <h2 class="section-title">Trust &amp; traceability</h2>
+        <div class="grid-3">
+            <div class="card">
+                <h3 style="margin-top:0">Every insight has a source</h3>
+                <p class="muted">You can trace signals back to the original review, post, or mention.</p>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0">Built for repeatability</h3>
+                <p class="muted">The system runs weekly so you’re not relying on “research days” to stay current.</p>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0">A workflow, not a tool</h3>
+                <p class="muted">Your team gets a consistent format: what changed, why it matters, and what to watch next.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mk-cta">
+    <div class="container">
+        <div class="card mk-cta-card">
+            <h2 style="margin-top:0">Ready to see it on your market?</h2>
+            <p class="muted" style="max-width:70ch">
+                Start with one company. You’ll get your first brief quickly — then the weekly cadence keeps you ahead.
+            </p>
+            <div class="mk-actions">
+                <a class="btn primary" href="/app/signup">Start your 14-day free trial</a>
+                <a class="btn" href="/pricing">See pricing</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

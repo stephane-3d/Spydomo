@@ -1,0 +1,118 @@
+﻿@using Spydomo.DTO.Datasheet
+@using Spydomo.Common.Enums
+@rendermode InteractiveServer
+
+<MudCard Class="@($"src-card {SentimentClass}")" Elevation="0">
+    <MudCardContent>
+
+        <!-- Header (same as other tabs) -->
+        <div class="src-head">
+            <MudAvatar Variant="Variant.Outlined" Size="Size.Medium">@Initial(Company.Company)</MudAvatar>
+            <div class="min-w-0 grow ml-2">
+                <div class="truncate font-medium">@Company.Company</div>
+                @if (!string.IsNullOrWhiteSpace(Company.Url))
+                {
+                    <a href="@BuildUrl(Company.Url)" target="_blank" class="src-domain">@Domain(Company.Url)</a>
+                }
+            </div>
+            @* Optional total count chip *@
+            @* <MudChip T="string" Dense="true" Color="Color.Primary">@Company.Tags.Sum(t => t.Count)</MudChip> *@
+        </div>
+
+        @if (Company.Tags.Count == 0)
+        {
+            <div class="muted">—</div>
+        }
+        else
+        {
+            <div class="tag-list">
+                @foreach (var t in Company.Tags.OrderByDescending(x => x.Count).ThenBy(x => x.Label))
+                {
+                    <div class="@($"src-row tag-{t.Sentiment}")">
+                        <div class="src-left">
+                            <div class="tag-name">@t.Label</div>
+                            @if (!string.IsNullOrWhiteSpace(t.Reason))
+                            {
+                                <MudTooltip Text="@t.Reason" Placement="Placement.Bottom" MaxWidth="max-content">
+                                    <div class="tag-reason text-muted">@t.Reason</div>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+
+                                <div class="tag-reason text-muted">—</div>
+                            }
+                        </div>
+
+                        <div class="src-bar-wrap">
+                            <div class="src-bar" style="width:@(WidthPct(t.Count, _barMax))%"></div>
+                        </div>
+
+                        <div class="src-val">@t.Count</div>
+                    </div>
+                }
+            </div>
+        }
+
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public TagsCompanyDto Company { get; set; } = default!;
+    [Parameter] public TagSentimentFilter Filter { get; set; } = TagSentimentFilter.All;
+
+    private int _barMax;
+
+    private string SentimentClass => Filter switch
+    {
+        TagSentimentFilter.Positive => "sent-pos",
+        TagSentimentFilter.Neutral => "sent-neu",
+        TagSentimentFilter.Negative => "sent-neg",
+        _ => "sent-all"
+    };
+
+    protected override void OnParametersSet()
+    {
+        _barMax = Math.Max(1, (Company?.Tags?.Count ?? 0) > 0
+            ? Company.Tags.Max(t => t.Count)
+            : 1);
+    }
+
+    private static int WidthPct(int value, int max)
+        => max <= 0 ? 0 : (int)Math.Round(100.0 * value / max);
+
+    private static string Initial(string? s)
+        => string.IsNullOrWhiteSpace(s) ? "?" : s.Trim()[0].ToString().ToUpperInvariant();
+
+    private static string BuildUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        if (Uri.TryCreate(url, UriKind.Absolute, out var abs)) return abs.ToString();
+        var cleaned = url.Trim();
+        if (!cleaned.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            cleaned = "https://" + cleaned;
+        return cleaned;
+    }
+
+    private static string Domain(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        try
+        {
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                url = "https://" + url.Trim();
+            return new Uri(url).Host.Replace("www.", "");
+        }
+        catch { return ""; }
+    }
+
+    private static string RowClass(TagRow t)
+    {
+        var s = t.Label?.TrimStart();
+        var kind = (!string.IsNullOrEmpty(s) && s![0] == '+') ? "pos"
+                 : (!string.IsNullOrEmpty(s) && s![0] == '-') ? "neg"
+                 : "neu";
+        return $"src-row tag-{kind}";
+    }
+
+}

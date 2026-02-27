@@ -1,0 +1,115 @@
+﻿@page "/app/Fetch"
+@layout MasterAdminLayout
+@rendermode InteractiveServer
+
+@using Spydomo.Web.Components.Layout
+@using Spydomo.Web.Classes
+@using Spydomo.Web.Components.Pages.Parts
+
+@inject IWorkerAdminClient WorkerAdminClient
+@using Spydomo.Infrastructure.Interfaces
+
+<RequireRole Roles="admin" MustBeSpydomoEmployee="true">
+
+<div class="w-50 mx-auto">
+    <div class="card my-5 d-inline-block">
+        <div class="card-body">
+
+            <h3>Admin Fetch / Debug</h3>
+
+            <p class="mb-2">
+                <input @bind="CompanyId" placeholder="Enter company ID" />
+            </p>
+
+            <p class="mb-3">
+                <label>
+                    <input type="checkbox" @bind="RunInline" />
+                    Run inline (unchecked = Hangfire)
+                </label>
+            </p>
+
+            <p class="mb-3">
+                    <button class="btn btn-primary" @onclick="RunCompanyData" disabled="@IsLoading">Process CompanyData</button>
+                    <button class="btn btn-primary" @onclick="RunInternalContent" disabled="@IsLoading">Fetch Internal Content</button>
+                    <button class="btn btn-primary" @onclick="RunFeedback" disabled="@IsLoading">Fetch External Feedback</button>
+                    <button class="btn btn-primary" @onclick="RunStrategicSummaries" disabled="@IsLoading">
+                        Create Strategic Summaries
+                    </button>
+                    <button class="btn btn-primary" @onclick="RunRedditMentions" disabled="@IsLoading">
+                        Fetch Reddit Mentions
+                    </button>
+
+            </p>
+
+            @if (IsLoading)
+            {
+                <p>Loading...</p>
+            }
+
+            @if (Results?.Any() == true)
+            {
+                <ul>
+                    @foreach (var result in Results)
+                    {
+                        <li>@result</li>
+                    }
+                </ul>
+            }
+
+        </div>
+    </div>
+</div>
+
+</RequireRole>
+
+@code {
+    private int CompanyId { get; set; }
+    private bool RunInline { get; set; } = true;
+    private List<string> Results { get; set; } = new();
+    private bool IsLoading { get; set; }
+
+    private async Task RunCompanyData() =>
+        await Run(async () => await WorkerAdminClient.ProcessCompanyDataAsync(CompanyId, inline: RunInline));
+
+    private async Task RunInternalContent() =>
+        await Run(async () => await WorkerAdminClient.ProcessInternalContentAsync(CompanyId, inline: RunInline));
+
+    private async Task RunFeedback() =>
+        await Run(async () => await WorkerAdminClient.ProcessFeedbackAsync(CompanyId, inline: RunInline));
+
+    private async Task RunStrategicSummaries() =>
+        await Run(async () => await WorkerAdminClient.ProcessStrategicSummariesAsync(CompanyId, inline: RunInline));
+
+    private async Task RunRedditMentions() =>
+        await Run(async () => await WorkerAdminClient.FetchRedditMentionsAsync(CompanyId, inline: RunInline));
+
+
+    private async Task Run(Func<Task<string>> action)
+    {
+        Results = new();
+
+        if (CompanyId <= 0)
+        {
+            Results.Add("❌ Invalid company ID.");
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            Results.Add($"🔄 Starting job for Company ID {CompanyId} (mode={(RunInline ? "inline" : "hangfire")})...");
+            var response = await action();
+            Results.Add("✅ Done.");
+            Results.Add($"📦 Response: {response}");
+        }
+        catch (Exception ex)
+        {
+            Results.Add($"❌ Failed: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+}

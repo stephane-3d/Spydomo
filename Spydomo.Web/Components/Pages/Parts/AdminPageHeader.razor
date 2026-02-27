@@ -1,0 +1,39 @@
+﻿@* Generic admin page header with kicker, icon chip, subtitle, and optional right-side actions *@
+<header class="page-head @(Sticky ? "sticky" : null)">
+    @if (!string.IsNullOrWhiteSpace(Icon))
+    {
+        <div class="head-icon">
+            <i class="@Icon" aria-hidden="true"></i>
+        </div>
+    }
+
+    <div class="title-stack">
+        @if (!string.IsNullOrWhiteSpace(Kicker))
+        {
+            <div class="kicker">@Kicker</div>
+        }
+
+        <h2 class="page-title">@Title</h2>
+
+        @if (!string.IsNullOrWhiteSpace(Subtext))
+        {
+            <p class="subtle">@Subtext</p>
+        }
+    </div>
+
+    @if (Actions is not null)
+    {
+        <div class="head-actions">
+            @Actions
+        </div>
+    }
+</header>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Kicker { get; set; }
+    [Parameter] public string? Icon { get; set; }          // e.g. "ph ph-buildings"
+    [Parameter] public string? Subtext { get; set; }
+    [Parameter] public bool Sticky { get; set; } = false;  // optional
+    [Parameter] public RenderFragment? Actions { get; set; } // optional right-side buttons
+}

@@ -1,0 +1,46 @@
+# ── Build output ────────────────────────────────────────────────────────────
+bin/
+obj/
+publish/
+out/
+
+# ── Visual Studio ────────────────────────────────────────────────────────────
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.slnLaunch.user
+
+# ── VS Code ──────────────────────────────────────────────────────────────────
+# Keep .vscode/launch.json and tasks.json (no secrets in them)
+.vscode/.browse.VC.db*
+.vscode/ipch/
+
+# ── .NET / EF ────────────────────────────────────────────────────────────────
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ── ASP.NET Core secrets ─────────────────────────────────────────────────────
+# appsettings.Development.json may contain local connection strings
+# Use Azure App Service Configuration for production secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# ── Node.js ──────────────────────────────────────────────────────────────────
+Spydomo.Node/node_modules/
+Spydomo.Node/.env
+Spydomo.Node/.env.local
+npm-debug.log*
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Claude Code ──────────────────────────────────────────────────────────────
+.claude/

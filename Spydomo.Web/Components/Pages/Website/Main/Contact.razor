@@ -1,0 +1,120 @@
+﻿@page "/contact"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using Spydomo.DTO
+@inject IJSRuntime JS
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Contact — Spydomo</PageTitle>
+
+<ContentPage Title="Contact us"
+             HeroImageUrl="/assets/contact-us-2.png"
+             Subtitle="@("Have a question, suggestion, or partnership idea?\nWe’d love to hear from you.")">
+
+    <EditForm Model="@contactModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <div class="form-grid">
+            <div class="form-row">
+                <label for="name">Name</label>
+                <MudTextField @bind-Value="contactModel.Name" For="() => contactModel.Name" Id="name"
+                              Required="true" Placeholder="Your name" />
+            </div>
+
+            <div class="form-row">
+                <label for="email">Email</label>
+                <MudTextField @bind-Value="contactModel.Email" For="() => contactModel.Email" Id="email"
+                              Required="true" Placeholder="you@company.com" />
+            </div>
+
+            <div class="form-row">
+                <label for="subject">Subject</label>
+                <MudTextField @bind-Value="contactModel.Subject" For="() => contactModel.Subject" Id="subject"
+                              Required="true" Placeholder="How can we help?" />
+            </div>
+
+            <div class="form-row">
+                <label for="message">Message</label>
+                <MudTextField @bind-Value="contactModel.Message" For="() => contactModel.Message" Id="message"
+                              Lines="6" Text="@contactModel.Message" Placeholder="Write your message…" />
+            </div>
+
+            @* Honeypot anti-spam (leave empty) *@
+            <input class="hp-field" autocomplete="off" tabindex="-1"
+                   @bind="honeypot" aria-hidden="true" />
+
+            <div class="form-actions">
+                <MudButton Disabled="@isSubmitting" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit">
+                    @if (isSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Class="me-2" />
+                    }
+                    Send message
+                </MudButton>
+
+                <div class="alt-contact muted">
+                    or email us directly at
+                    <a href="mailto:info@spydomo.com" class="link">info@spydomo.com</a>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</ContentPage>
+
+@code {
+    private readonly ContactFormModel contactModel = new();
+    private bool isSubmitting;
+    private string? honeypot;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // If bots fill the hidden field, ignore the submission.
+        if (!string.IsNullOrWhiteSpace(honeypot))
+        {
+            Snackbar.Add("Message sent successfully!", Severity.Success);
+            return;
+        }
+
+        isSubmitting = true;
+        try
+        {
+            // Ensure public page: ClientId/UserId default to 0
+            contactModel.ClientId = 0;
+            contactModel.UserId = 0;
+
+            var response = await Http.PostAsJsonAsync("/api/contact", contactModel);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Message sent successfully!", Severity.Success);
+                contactModel.Subject = string.Empty;
+                contactModel.Message = string.Empty;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Failed to send message: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error sending message", Severity.Error);
+            Console.WriteLine(ex);
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+}

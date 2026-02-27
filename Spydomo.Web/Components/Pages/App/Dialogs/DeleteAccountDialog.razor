@@ -1,0 +1,63 @@
+﻿@using MudBlazor
+@rendermode InteractiveServer
+
+<MudDialog MaxWidth="MaxWidth.ExtraSmall" DisableBackdropClick="true" Class="p-6">
+    <DialogContent>
+        <MudText Typo="Typo.body2">
+            This will permanently close your Spydomo account and remove your access.
+        </MudText>
+
+        <ul class="mt-2 ml-4">
+            <li>Cancel your active subscription</li>
+            <li>Remove your access to all tracked companies and insights</li>
+            <li>Queue your account data for deletion (billing records may be kept as required by law)</li>
+        </ul>
+
+        <MudText Color="Color.Error" Class="mt-6">
+            This action cannot be undone.
+        </MudText>
+
+        <MudCheckBox T="bool"
+                     Class="mt-3"
+                     Color="Color.Error"
+                     Value="_confirmed"
+                     ValueChanged="OnConfirmedChanged"
+                     Label="Yes, I understand this is permanent and want to delete my account." />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Confirm"
+                   Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   Disabled="@(!_confirmed)">
+            Yes, delete my account
+        </MudButton>
+
+        <MudButton OnClick="() => MudDialog.Cancel()"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary">
+            Keep my account
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _confirmed;
+
+    private void Confirm()
+    {
+        if (_confirmed)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    private void OnConfirmedChanged(bool value)
+    {
+        _confirmed = value;
+        Console.WriteLine($"Checkbox changed to: {value}");
+    }
+}

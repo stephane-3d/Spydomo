@@ -1,0 +1,19 @@
+PuppeteerSharp.NavigationException: Protocol error(Page.navigate): Target closed. (Connection failed to process Runtime.executionContextCreated. Frame E7176D07F771A10997FF7492D8AD55A6 not found.    at PuppeteerSharp.Helpers.AsyncDictionaryHelper`2.<>c__DisplayClass6_0.<GetItemAsync>b__0() in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Helpers/AsyncDictionaryHelper.cs:line 35
+   at PuppeteerSharp.Helpers.TaskHelper.WithTimeout[T](Task`1 task, Action timeoutAction, TimeSpan timeout) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Helpers/TaskHelper.cs:line 146
+   at PuppeteerSharp.Helpers.AsyncDictionaryHelper`2.GetItemAsync(TKey key)
+   at PuppeteerSharp.Cdp.FrameManager.OnExecutionContextCreatedAsync(ContextPayload contextPayload, ICDPSession session) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/FrameManager.cs:line 314
+   at PuppeteerSharp.Cdp.FrameManager.<>c__DisplayClass58_0.<<Client_MessageReceived>b__0>d.MoveNext() in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/FrameManager.cs:line 235)
+ ---> PuppeteerSharp.TargetClosedException: Protocol error(Page.navigate): Target closed. (Connection failed to process Runtime.executionContextCreated. Frame E7176D07F771A10997FF7492D8AD55A6 not found.    at PuppeteerSharp.Helpers.AsyncDictionaryHelper`2.<>c__DisplayClass6_0.<GetItemAsync>b__0() in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Helpers/AsyncDictionaryHelper.cs:line 35
+   at PuppeteerSharp.Helpers.TaskHelper.WithTimeout[T](Task`1 task, Action timeoutAction, TimeSpan timeout) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Helpers/TaskHelper.cs:line 146
+   at PuppeteerSharp.Helpers.AsyncDictionaryHelper`2.GetItemAsync(TKey key)
+   at PuppeteerSharp.Cdp.FrameManager.OnExecutionContextCreatedAsync(ContextPayload contextPayload, ICDPSession session) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/FrameManager.cs:line 314
+   at PuppeteerSharp.Cdp.FrameManager.<>c__DisplayClass58_0.<<Client_MessageReceived>b__0>d.MoveNext() in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/FrameManager.cs:line 235)
+   at PuppeteerSharp.Helpers.TaskHelper.WithTimeout[T](Task`1 task, TimeSpan timeout, Func`2 exceptionFactory) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Helpers/TaskHelper.cs:line 188
+   at PuppeteerSharp.Cdp.CdpCDPSession.SendAsync(String method, Object args, Boolean waitForCallback, CommandOptions options) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/CdpCDPSession.cs:line 113
+   at PuppeteerSharp.CDPSession.SendAsync[T](String method, Object args, CommandOptions options) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/CDPSession.cs:line 48
+   at PuppeteerSharp.Cdp.CdpFrame.<>c__DisplayClass15_0.<<GoToAsync>g__NavigateAsync|0>d.MoveNext() in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/CdpFrame.cs:line 113
+--- End of stack trace from previous location ---
+   at PuppeteerSharp.Cdp.CdpFrame.GoToAsync(String url, NavigationOptions options) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/CdpFrame.cs:line 95
+   --- End of inner exception stack trace ---
+   at PuppeteerSharp.Cdp.CdpFrame.GoToAsync(String url, NavigationOptions options) in /home/runner/work/puppeteer-sharp/puppeteer-sharp/lib/PuppeteerSharp/Cdp/CdpFrame.cs:line 106
+   at Spydomo.Infrastructure.Parsers.CapterraParser.NavigateWithRetryAsync(String url, String waitForSelector, Int32 maxRetries, Int32 navigationTimeoutMs)

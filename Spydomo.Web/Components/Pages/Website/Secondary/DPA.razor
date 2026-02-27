@@ -1,0 +1,203 @@
+﻿@page "/dpa"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+@using Spydomo.Web.Components.Pages.Website.Parts
+
+<PageTitle>Data Processing Agreement — Spydomo</PageTitle>
+
+<ContentPage Title="Data Processing Agreement (DPA)"
+             Subtitle="How Spydomo processes personal data on your behalf"
+             HeroImageUrl="/assets/data.png"
+             HeroAlt=""
+             TitleIconUrl="">
+
+    <h3>About this DPA</h3>
+    <p>
+        This Data Processing Agreement ("DPA") explains how Spydomo processes personal data
+        on behalf of our customers when they use our services.
+    </p>
+    <p>
+        By using Spydomo and agreeing to our Terms of Service, you are also agreeing to this DPA.
+        You do not need to sign a separate document. We provide the same privacy protections
+        and data processing commitments to all customers.
+    </p>
+    <p>
+        If your organization requires a signed copy of this DPA, please contact us at
+        <a href="mailto:info@spydomo.com">info@spydomo.com</a> and we will provide a countersigned version.
+    </p>
+
+    <h4 class="mt-4">1. Definitions</h4>
+    <p>
+        Terms such as <strong>Personal Data</strong>, <strong>Processing</strong>,
+        <strong>Controller</strong>, <strong>Processor</strong>, <strong>Data Subject</strong>
+        and <strong>Supervisory Authority</strong> have the meanings given in applicable
+        data protection laws (including the GDPR and UK GDPR).
+        <strong>Applicable Data Protection Laws</strong> means all laws relating to data protection
+        and privacy that apply to the Processing under this DPA.
+        A <strong>Subprocessor</strong> is a third party engaged by Spydomo to Process Personal Data
+        on behalf of the customer.
+    </p>
+
+    <h4 class="mt-4">2. Subject Matter and Duration</h4>
+    <p>
+        This DPA applies where Spydomo processes Personal Data on behalf of the customer
+        in connection with the Spydomo service (the “Services”).
+        The Processing will continue for the term of the Main Agreement between the customer
+        and Spydomo and until all Personal Data is deleted or returned in accordance with this DPA.
+    </p>
+
+    <h4 class="mt-4">3. Nature and Purpose of Processing</h4>
+    <p>
+        Spydomo provides a competitive intelligence and insights platform for software companies.
+        Spydomo Processes Personal Data as necessary to:
+    </p>
+    <ul>
+        <li>Provide, operate, and support the Services</li>
+        <li>Maintain security, monitor performance, and prevent abuse</li>
+        <li>Provide customer support and handle requests from the customer</li>
+        <li>Improve and develop the Services, in accordance with Applicable Data Protection Laws</li>
+    </ul>
+
+    <h4 class="mt-4">4. Types of Personal Data and Data Subjects</h4>
+    <p>
+        Personal Data Processed under this DPA may include:
+    </p>
+    <ul>
+        <li>Business contact details (e.g., name, email address, company, job title)</li>
+        <li>Account and login information for users of the Services</li>
+        <li>Usage data and technical data related to use of the Services</li>
+        <li>
+            Text or other content submitted to the Services by or on behalf of the customer,
+            which may incidentally include Personal Data depending on how the customer uses Spydomo
+        </li>
+    </ul>
+    <p>
+        Categories of Data Subjects may include the customer’s employees, contractors, and contacts,
+        and other individuals whose data is included in content provided or connected by the customer.
+    </p>
+
+    <h4 class="mt-4">5. Roles of the Parties</h4>
+    <p>
+        For Personal Data covered by this DPA:
+    </p>
+    <ul>
+        <li>The customer is the <strong>Controller</strong> of the Personal Data.</li>
+        <li>Spydomo is the <strong>Processor</strong> processing Personal Data on behalf of the customer.</li>
+    </ul>
+    <p>
+        Nothing in this DPA prevents Spydomo from acting as an independent Controller for certain data,
+        for example data about its own customers and marketing activities, as described in Spydomo’s
+        Privacy Policy.
+    </p>
+
+    <h4 class="mt-4">6. Spydomo’s Obligations as Processor</h4>
+    <p>Spydomo shall:</p>
+    <ul>
+        <li>
+            Process Personal Data only on documented instructions from the customer, including with
+            respect to transfers, unless required to do so by law. In such a case, Spydomo will inform
+            the customer unless the law prohibits this.
+        </li>
+        <li>
+            Ensure that persons authorized to Process Personal Data are bound by appropriate confidentiality
+            obligations.
+        </li>
+        <li>
+            Implement appropriate technical and organizational measures to protect Personal Data against
+            accidental or unlawful destruction, loss, alteration, unauthorized disclosure, or access.
+        </li>
+        <li>
+            Notify the customer without undue delay after becoming aware of a Personal Data breach affecting
+            Personal Data Processed on behalf of the customer, and provide information reasonably available
+            to assist the customer in meeting its obligations.
+        </li>
+        <li>
+            Taking into account the nature of the Processing, assist the customer by appropriate technical
+            and organizational measures, where possible, in responding to Data Subject requests to exercise
+            their rights under Applicable Data Protection Laws.
+        </li>
+        <li>
+            Where required by law, assist the customer with data protection impact assessments and consultations
+            with supervisory authorities in relation to the Services.
+        </li>
+        <li>
+            Upon termination of the Main Agreement, delete or return Personal Data to the customer, at the
+            customer’s choice, unless retention is required by law. Aggregated or anonymized data that no
+            longer constitutes Personal Data may be retained by Spydomo.
+        </li>
+    </ul>
+
+    <h4 class="mt-4">7. Subprocessors</h4>
+
+    <p>
+        We work with a small number of subprocessors to help us deliver Spydomo. For each subprocessor,
+        we assess their security and privacy practices and enter into a data processing agreement
+        that includes appropriate data protection safeguards (such as the controller–processor
+        Standard Contractual Clauses where required).
+    </p>
+
+    <p>
+        Any such subprocessors are permitted to process personal data only as necessary to provide
+        the services Spydomo has engaged them to deliver, and they are prohibited from using the data
+        for any other purpose.
+    </p>
+
+    <p>
+        We may update our list of subprocessors from time to time as we evolve our infrastructure.
+        Where required by applicable law or by our agreements with you, we will notify you of material
+        changes (for example via email, in-app notifications, or by updating our website). If you have
+        a legitimate objection to a new subprocessor, you may notify us and, if we cannot reasonably
+        address your objection, you may terminate the affected services in accordance with the Main Agreement.
+    </p>
+
+    <SubprocessorsTable />
+
+    <h4 class="mt-4">8. International Transfers</h4>
+    <p>
+        Where the Processing of Personal Data involves transfers outside the EEA or UK to a country not
+        deemed to provide an adequate level of protection, Spydomo shall ensure that such transfers are
+        made in compliance with Applicable Data Protection Laws, for example by implementing appropriate
+        safeguards such as the EU Standard Contractual Clauses and, where applicable, the UK International
+        Data Transfer Addendum.
+    </p>
+
+    <h4 class="mt-4">9. Audits</h4>
+    <p>
+        Spydomo shall make available to the customer information reasonably necessary to demonstrate
+        compliance with this DPA and, where required by law, allow for and contribute to audits, including
+        inspections, by the customer or an auditor mandated by the customer.
+    </p>
+    <p>
+        Any audit shall be subject to reasonable prior notice, occur no more than once in any 12-month period
+        (unless required by a supervisory authority or in response to a confirmed incident), be conducted
+        during normal business hours, and not unreasonably disrupt Spydomo’s business. The customer shall
+        bear its own costs and any third-party costs of such audit.
+    </p>
+
+    <h4 class="mt-4">10. Customer Obligations</h4>
+    <p>
+        The customer is responsible for ensuring that it has a valid legal basis for Processing Personal Data
+        and for providing such data to Spydomo in connection with the Services, for providing any required
+        notices to Data Subjects, and for obtaining any required consents. The customer agrees that it will
+        not submit special categories of personal data to the Services unless the parties have explicitly
+        agreed otherwise in writing.
+    </p>
+
+    <h4 class="mt-4">11. Miscellaneous</h4>
+    <p>
+        In the event of any conflict between this DPA and the Main Agreement, this DPA shall prevail with respect
+        to the Processing of Personal Data. This DPA shall be governed by the same law and jurisdiction as the
+        Main Agreement, unless otherwise required by Applicable Data Protection Laws.
+    </p>
+
+</ContentPage>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("scrollToTop");
+        }
+    }
+}

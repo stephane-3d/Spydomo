@@ -1,0 +1,11 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/859aba53-8fbb-4938-ae93-a2cac249f7e8/resourceGroups/spydomo-node_group/providers/Microsoft.Web/sites/spydomo-node",
+    "appService.deploySubpath": ".",
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        "*.tar.gz",
+        "node_modules.tar.gz",
+        ".git{,/**}",
+        ".vscode{,/**}"
+    ]
+}
